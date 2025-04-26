@@ -11,12 +11,12 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("BCH-PROJEKT")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("BCH-projekt")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
-[assembly: System.Reflection.AssemblyProductAttribute("BCH-PROJEKT")]
-[assembly: System.Reflection.AssemblyTitleAttribute("BCH-PROJEKT")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8dcae39c4e12f86b28ce1f7633fac79be1543084")]
+[assembly: System.Reflection.AssemblyProductAttribute("BCH-projekt")]
+[assembly: System.Reflection.AssemblyTitleAttribute("BCH-projekt")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows7.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows7.0")]

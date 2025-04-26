@@ -18,7 +18,7 @@ namespace BCH_PROJEKT
     {
         public MainWindow()
         {
-            InitializeComponent();
+            InitializeComponent(); //komentarz
         }
     }
 }
