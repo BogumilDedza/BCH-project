@@ -5,8 +5,30 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BCH_PROJEKT"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="BCH" Height="450" Width="800">
+    <Grid Margin="0,0,373,205">
+        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,10,142,119">
+            <Canvas>
+                <TextBox Name="Box" HorizontalAlignment="Left" Width="232" Height="30" Canvas.Left="9" Canvas.Top="2" VerticalAlignment="Center" />
+                <Button Content="Send commend" Width="94" Canvas.Left="147" Canvas.Top="37" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+            </Canvas>
+        </Border>
+        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,115,142,-35">
+            <Canvas>
+                <TextBlock Text="Kodowanie BCH" HorizontalAlignment="Left" Width="198" Height="30" Canvas.Top="9" VerticalAlignment="Center" Canvas.Left="10" />
+                <Button Content="YES" Width="32" Canvas.Left="109" Canvas.Top="4" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                <Button Content="NO" Width="42" Canvas.Left="175" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
+                <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Height="66" Canvas.Top="46" Width="237" HorizontalAlignment="Center" VerticalAlignment="Top">
+                    <Canvas Margin="2,-2,-2,2">
+                        <TextBlock Text="Tryb Kodowania" HorizontalAlignment="Center" Width="198" Height="30" Canvas.Top="17" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.695" />
+                        <Button Content="YES" Width="42" Canvas.Left="99" Canvas.Top="17" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        <Button Content="NO" Width="42" Canvas.Left="162" Canvas.Top="17" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                    </Canvas>
+                </Border>
+
+            </Canvas>
+        </Border>
 
     </Grid>
 </Window>
