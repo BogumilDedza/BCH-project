@@ -7,28 +7,50 @@
         mc:Ignorable="d"
         Title="BCH" Height="450" Width="800">
     <Grid Margin="0,0,373,205">
-        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,10,142,119">
-            <Canvas>
+        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,14,147,138">
+            <Canvas Margin="0,0,0,15">
                 <TextBox Name="Box" HorizontalAlignment="Left" Width="232" Height="30" Canvas.Left="9" Canvas.Top="2" VerticalAlignment="Center" />
                 <Button Content="Send commend" Width="94" Canvas.Left="147" Canvas.Top="37" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Top"/>
             </Canvas>
         </Border>
-        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,115,142,-35">
+
+       
+        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,96,142,-16">
             <Canvas>
                 <TextBlock Text="Kodowanie BCH" HorizontalAlignment="Left" Width="198" Height="30" Canvas.Top="9" VerticalAlignment="Center" Canvas.Left="10" />
-                <Button Content="YES" Width="32" Canvas.Left="109" Canvas.Top="4" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-                <Button Content="NO" Width="42" Canvas.Left="175" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <Button Content="TAK" Width="32" Canvas.Left="129" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <Button Content="NIE" Width="32" Canvas.Left="186" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.48"/>
 
-                <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Height="66" Canvas.Top="46" Width="237" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Height="66" Canvas.Top="44" Width="237" HorizontalAlignment="Left" VerticalAlignment="Top" Canvas.Left="7">
                     <Canvas Margin="2,-2,-2,2">
                         <TextBlock Text="Tryb Kodowania" HorizontalAlignment="Center" Width="198" Height="30" Canvas.Top="17" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.695" />
-                        <Button Content="YES" Width="42" Canvas.Left="99" Canvas.Top="17" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                        <Button Content="NO" Width="42" Canvas.Left="162" Canvas.Top="17" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        <Button Content="SZYBKI" Width="45" Canvas.Left="99" Canvas.Top="15" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <Button Content="WOLNY" Width="45" Canvas.Left="158" Canvas.Top="15" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center"/>
                     </Canvas>
                 </Border>
 
             </Canvas>
         </Border>
 
+        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,250,0,-170">
+            <Canvas>
+                <TextBlock Text="GENERACJA SZUMU LOSOWEGO" HorizontalAlignment="Left" Width="198" Height="30" Canvas.Top="9" VerticalAlignment="Center" Canvas.Left="10" />
+                <Button Content="TAK" Width="32" Canvas.Left="256" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center" Click="YESbutton_Click"/>
+                <Button Content="NIE" Width="32" Canvas.Left="328" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center" Click="NObutton_Click" RenderTransformOrigin="0.5,0.48"/>
+
+                <StackPanel Name="Option" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,50,0,0" Visibility="Collapsed">
+                    <Button Content="Szum Gaussowski" Width="200" Height="30" Click="GaussianNoiseButton_Click"/>
+                    <Button Content="Generator określonych przekłamań bitów" Width="200" Height="30" Click="BitErrorGeneratorButton_Click"/>
+                </StackPanel>
+
+                
+                <StackPanel Name="BitError" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,150,0,0" Visibility="Collapsed">
+                    
+                    <Button Content="Generuj błędy" Width="200" Height="30" Click="GenerateErrorsButton_Click"/>
+                </StackPanel>
+
+
+            </Canvas>
+        </Border>
     </Grid>
 </Window>
