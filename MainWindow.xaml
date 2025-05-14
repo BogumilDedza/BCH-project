@@ -5,52 +5,108 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BCH_PROJEKT"
         mc:Ignorable="d"
-        Title="BCH" Height="450" Width="800">
-    <Grid Margin="0,0,373,205">
-        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,14,147,138">
-            <Canvas Margin="0,0,0,15">
-                <TextBox Name="Box" HorizontalAlignment="Left" Width="232" Height="30" Canvas.Left="9" Canvas.Top="2" VerticalAlignment="Center" />
-                <Button Content="Send commend" Width="94" Canvas.Left="147" Canvas.Top="37" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-            </Canvas>
-        </Border>
+        Title="BCH" Height="600" Width="800" Background="#001F3F">
 
+    <Window.Resources>
        
-        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,96,142,-16">
-            <Canvas>
-                <TextBlock Text="Kodowanie BCH" HorizontalAlignment="Left" Width="198" Height="30" Canvas.Top="9" VerticalAlignment="Center" Canvas.Left="10" />
-                <Button Content="TAK" Width="32" Canvas.Left="129" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                <Button Content="NIE" Width="32" Canvas.Left="186" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.48"/>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#F0F0F0"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
 
-                <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Height="66" Canvas.Top="44" Width="237" HorizontalAlignment="Left" VerticalAlignment="Top" Canvas.Left="7">
-                    <Canvas Margin="2,-2,-2,2">
-                        <TextBlock Text="Tryb Kodowania" HorizontalAlignment="Center" Width="198" Height="30" Canvas.Top="17" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.695" />
-                        <Button Content="SZYBKI" Width="45" Canvas.Left="99" Canvas.Top="15" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                        <Button Content="WOLNY" Width="45" Canvas.Left="158" Canvas.Top="15" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                    </Canvas>
-                </Border>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="#F0F0F0"/>
+            <Setter Property="Background" Value="#FF6B6B"/>
+            <Setter Property="BorderBrush" Value="#F0F0F0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
 
-            </Canvas>
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontWeight" Value="14"/>
+        </Style>
+
+        <Style TargetType="Border">
+
+            <Setter Property="Background" Value="#002F5F"/>
+            <Setter Property="BorderBrush" Value="#FF6B6B"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="10"/>
+
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Opacity="0.5"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Margin" Value="10"/>
+        </Style>
+    </Window.Resources>
+    
+    
+    <Grid Margin="20">
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!--Comand section-->
+        <Border Grid.Row="0">
+            <StackPanel >
+                <TextBox Name="Box" Width="300" Height="30"/>
+                <Button Content="Send command" Width="150"/>
+            </StackPanel>
         </Border>
 
-        <Border Background="AntiqueWhite" BorderBrush="AliceBlue" BorderThickness="2" CornerRadius="10" Padding="10" Margin="10,250,0,-170">
-            <Canvas>
-                <TextBlock Text="GENERACJA SZUMU LOSOWEGO" HorizontalAlignment="Left" Width="198" Height="30" Canvas.Top="9" VerticalAlignment="Center" Canvas.Left="10" />
-                <Button Content="TAK" Width="32" Canvas.Left="256" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center" Click="YESbutton_Click"/>
-                <Button Content="NIE" Width="32" Canvas.Left="328" Canvas.Top="7" Background="MediumPurple" BorderBrush="AliceBlue" HorizontalAlignment="Left" VerticalAlignment="Center" Click="NObutton_Click" RenderTransformOrigin="0.5,0.48"/>
-
-                <StackPanel Name="Option" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,50,0,0" Visibility="Collapsed">
-                    <Button Content="Szum Gaussowski" Width="200" Height="30" Click="GaussianNoiseButton_Click"/>
-                    <Button Content="Generator określonych przekłamań bitów" Width="200" Height="30" Click="BitErrorGeneratorButton_Click"/>
-                </StackPanel>
-
+        <Border Grid.Row="1">
+            <StackPanel Orientation="Vertical">
                 
-                <StackPanel Name="BitError" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,150,0,0" Visibility="Collapsed">
-                    
-                    <Button Content="Generuj błędy" Width="200" Height="30" Click="GenerateErrorsButton_Click"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="BCH CODING" VerticalAlignment="Center" Margin="0,0,50,0"/>
+                        <Button Content="YES" Width="50"  HorizontalAlignment="Left"/>
+                        <Button Content="NO" Width="50" HorizontalAlignment="Right"/>
+                    </StackPanel>
+                    <Border Margin="0,10,0,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="TYPE OF CODING" VerticalAlignment="Center"/>
+                        <Button Content="FAST" Width="60"/>
+                        <Button Content="SLOW" Width="60"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2">
+            <StackPanel Orientation="Vertical">
+                <TextBlock Text="GENERATING RANDOM NOISE " Margin="0,0,0,10"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="YES" Width="60" Click="YES_button_Click"/>
+                    <Button Content="NO" Width="60" Click="NO_button_Click"/>
                 </StackPanel>
 
+                <StackPanel Name="Option" Margin="0,10,0,0" Visibility="Collapsed">
+                    <Button Content="GAUSIN NOISE" Width="250" Click="GaussianNoiseButton_Click"/>
+                    <Button Content="BIT ERROR GENERATOR " Width="250" Click="BitErrorGeneratorButton_Click"/>
+                </StackPanel>
 
-            </Canvas>
+                <StackPanel Name="BitError" Margin="0,2.5,0,0" Visibility="Collapsed">
+                    <Button Content="GENERATE ERROR" Width="250" Click="GenerateErrorsButton_Click"/>
+                </StackPanel>
+            </StackPanel>
         </Border>
+        </Grid>
     </Grid>
 </Window>

@@ -27,18 +27,39 @@ namespace BCH_PROJEKT
 
         // KOMENDY
 
-        private void SendComandButton_Click(object sender, RoutedEventArgs e)
+        private void YES_button_Click(object sender,RoutedEventArgs e)
         {
-            string command=Box.Text;
-            if (string.IsNullOrEmpty(command))
-            {
-                MessageBox.Show("Proszę wpisz komendę","Pusta komenda",MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            
+            Option.Visibility = Visibility.Visible;
+            BitError.Visibility = Visibility.Collapsed;
         }
 
+        private void NO_button_Click(Object sender, RoutedEventArgs e)
+        {
+            Option.Visibility = Visibility.Collapsed;
+            BitError.Visibility= Visibility.Collapsed;
+        }
+
+        private void GaussianNoiseButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("You choose gaussian noise ");
+        
+        }
+
+        private void BitErrorGeneratorButton_Click(object sender, RoutedEventArgs e)
+        {
+            BitError.Visibility = Visibility.Visible;
+
+        }
+
+        private void GenGenerateErrorsButton_Click(object sender, RoutedEventArgs e)
+        {
+
+            MessageBox.Show("Generate bit error base on choosen bits. ");
+        }
+        private void GenerateErrorsButton_Click(object sender, RoutedEventArgs e) 
+        {
+            MessageBox.Show("button erroor. ");
+        }
 
     }
 }
