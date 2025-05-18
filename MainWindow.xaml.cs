@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO.Ports;
+using System.IO;
 
 namespace BCH_PROJEKT
 {
@@ -21,15 +22,37 @@ namespace BCH_PROJEKT
         private bool BCHCodingEnable = false;
         private bool FastMode = true;
         private bool noiseGenerationEnabled = false;
+       
         public MainWindow()
         {
             InitializeComponent(); //komentarz
-            //komentarz2
+            ConnectToPort();
+            
 
-            serialPort=new SerialPort("COM3",9600);
-            serialPort.DataReceived += SerialPort_DataReceived;
-            serialPort.Open();
+        }
 
+        private void ConnectToPort()
+        {
+            string[] ports = SerialPort.GetPortNames();
+            foreach (string port in ports)
+            {
+                try
+                {
+                    serialPort = new SerialPort(port, 9600);
+                    serialPort.DataReceived += SerialPort_DataReceived;
+                    serialPort.Open();
+                    UpdateConnectionStatus(true);
+                    return;
+                }
+                catch
+                {
+                    
+                }
+            }
+
+            serialPort = null;
+            UpdateConnectionStatus(false);
+            MessageBox.Show("No available COM ports to connect.");
         }
 
         private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
@@ -46,10 +69,22 @@ namespace BCH_PROJEKT
 
         private void SendCommandButton_Click(object sender, RoutedEventArgs e) {
 
-            string comand = Box.Text;
+            string command = Box.Text;
             if(serialPort != null && serialPort.IsOpen)
             {
-                serialPort.WriteLine(comand);
+                try
+                {
+                    serialPort.WriteLine(command);
+                }
+                catch
+                {
+                    MessageBox.Show("Device disconnected. Attempting to reconnect...");
+                    ConnectToPort(); 
+                }
+            }
+            else
+            {
+                ConnectToPort(); 
             }
         }
 
@@ -69,26 +104,29 @@ namespace BCH_PROJEKT
         private void YES_button_Click(object sender,RoutedEventArgs e)
         {
             Option.Visibility = Visibility.Visible;
-            BitError.Visibility = Visibility.Collapsed;
+            BitErrorOptionsPanel.Visibility = Visibility.Collapsed;
             GaussianOptionsPanel.Visibility = Visibility.Collapsed;
 
             BitErrorGeneratorButton.Visibility = Visibility.Visible;
             GaussianNoiseButton.Visibility = Visibility.Visible;
 
             DensitySlider.Value = 0;
-            
+            BitErrorSlider.Value = 0;
+
         }
 
         private void NO_button_Click(Object sender, RoutedEventArgs e)
         {
             Option.Visibility = Visibility.Collapsed;
-            BitError.Visibility= Visibility.Collapsed;
+            BitErrorOptionsPanel.Visibility= Visibility.Collapsed;
            GaussianOptionsPanel.Visibility = Visibility.Collapsed;
             
             BitErrorGeneratorButton.Visibility = Visibility.Visible;
             GaussianNoiseButton.Visibility = Visibility.Visible;
 
+
             DensitySlider.Value = 0;
+            BitErrorSlider.Value = 0;
         }
 
         private void GaussianNoiseButton_Click(object sender, RoutedEventArgs e)
@@ -102,16 +140,22 @@ namespace BCH_PROJEKT
         
         private void BitErrorGeneratorButton_Click(object sender, RoutedEventArgs e)
         {
-            BitError.Visibility = Visibility.Visible;
+            BitErrorOptionsPanel.Visibility = Visibility.Visible;
             GaussianOptionsPanel.Visibility = Visibility.Collapsed;
 
             BitErrorGeneratorButton.Visibility = Visibility.Visible;
             GaussianNoiseButton.Visibility = Visibility.Collapsed;
 
 
-
         }
 
+        private void UpdateConnectionStatus(bool isConnected)
+        {
+            if (ConnectionStatusDot != null)
+            {
+                ConnectionStatusDot.Fill = isConnected ? Brushes.Green : Brushes.Red;
+            }
+        }
         private void GenGenerateErrorsButton_Click(object sender, RoutedEventArgs e)
         {
 
