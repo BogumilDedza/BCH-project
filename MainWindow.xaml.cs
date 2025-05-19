@@ -11,6 +11,10 @@ using System.Windows.Shapes;
 using System.IO.Ports;
 using System.IO;
 
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Drawing.Geometries;
+
 namespace BCH_PROJEKT
 {
     /// <summary>
@@ -27,8 +31,18 @@ namespace BCH_PROJEKT
         {
             InitializeComponent(); //komentarz
             ConnectToPort();
-            
+            DataContext = new ViewModel();
 
+        }
+
+        public class ViewModel
+        {
+            public ISeries[] Series { get; set; } = [
+                new ColumnSeries<int>(3,4,2),
+                new ColumnSeries<int>(4,2,6),
+                new ColumnSeries<double,DiamondGeometry>(4,3,4)
+                ];
+            
         }
 
         private void ConnectToPort()
@@ -52,7 +66,7 @@ namespace BCH_PROJEKT
 
             serialPort = null;
             UpdateConnectionStatus(false);
-            MessageBox.Show("No available COM ports to connect.");
+           ;
         }
 
         private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
@@ -69,7 +83,18 @@ namespace BCH_PROJEKT
 
         private void SendCommandButton_Click(object sender, RoutedEventArgs e) {
 
-            string command = Box.Text;
+            string UserInput;
+            if (!string.IsNullOrEmpty(Box.Text))
+            {
+                UserInput = Box.Text;
+            }
+            else
+            {
+                UserInput = "";
+            }
+
+            string command = "0"+ UserInput;
+
             if(serialPort != null && serialPort.IsOpen)
             {
                 try
@@ -84,19 +109,15 @@ namespace BCH_PROJEKT
             }
             else
             {
-                ConnectToPort(); 
+                RecivedTextBox.Text="no connection"; 
             }
         }
 
         private void ResetCommandButton_Click(object sender, RoutedEventArgs e)
         {
 
-            string comand = Box.Text;
-            if (serialPort != null && serialPort.IsOpen)
-            {
-                Box.Clear();
-                RecivedTextBox.Clear();
-            }
+            Box.Clear();
+            RecivedTextBox.Clear();
         }
 
         // KOMENDY
