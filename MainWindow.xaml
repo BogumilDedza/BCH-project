@@ -9,7 +9,7 @@
         Title="BCH" Height="700" Width="800" Background="#2E2E2E">
 
    
-    
+    <!--Styling sheet-->
     <Window.Resources>
 
         <Style TargetType="TextBlock">
@@ -29,7 +29,7 @@
 
 
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <!-- opcjonalnie -->
+            <!-- button change coolor of hower idk why its not working -->
 
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -83,7 +83,7 @@
                 <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-            <!--Comand section-->
+            <!--Connection status idicatorr-->
                 <Border Grid.Row="0" Width="300" HorizontalAlignment="Left">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="Connection Status:" Margin="5,0,10,0" VerticalAlignment="Center"/>
@@ -95,8 +95,8 @@
                         VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
-
-                <Border Grid.Row="1" Margin="0,0,0,20">
+            <!--send data and recive data-->
+            <Border Grid.Row="1" Margin="0,0,0,20">
                 <StackPanel >
                   
                     
@@ -110,8 +110,8 @@
                     
                 </StackPanel>
             </Border>
-
-                <Border Grid.Row="2" Margin="0,0,0,20">
+            <!--settings about bch-->
+            <Border Grid.Row="2" Margin="0,0,0,20">
                 <StackPanel Orientation="Vertical">
 
                     <StackPanel Orientation="Horizontal" >
@@ -128,8 +128,8 @@
                     </Border>
                 </StackPanel>
             </Border>
-
-                <Border Grid.Row="3" Margin="0,0,0,20">
+            <!--Setting about errors-->
+            <Border Grid.Row="3" Margin="0,0,0,20">
                 <StackPanel Orientation="Vertical">
                     <TextBlock Text="GENERATING RANDOM NOISE " Margin="0,0,0,10"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -160,20 +160,35 @@
                 </Border>
              </Grid>
 
-
+        <!--Chart section-->
         <Grid Grid.Column="1" Margin="30">
 
-            
 
+            <!--Height-->
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
                 
             </Grid.RowDefinitions>
+            <!--Chart settings-->
             <Border CornerRadius="20" Background="White" Padding="5" Margin="5">
-                <lvc:CartesianChart
-            Series="{Binding Series}" Background="White" />
+                
+                    <lvc:CartesianChart
+                      Height="Auto" 
+                      Width="Auto"
+                      Series="{Binding Series}"
+                      YAxes="{Binding YAxes}" 
+                      XAxes="{Binding XAxes}"
+                      DrawMarginFrame="{x:Null}"
+                      ZoomMode="None"
+                      LegendPosition="Top"
+                      Background="White"
+                      Margin="10,10,20,20"   
+                     
+                    />
+                
             </Border>
+
         </Grid>
    
     

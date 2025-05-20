@@ -14,6 +14,10 @@ using System.IO;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Drawing.Geometries;
+using System.Collections.ObjectModel;
+using LiveChartsCore.SkiaSharpView.Painting;
+using SkiaSharp;
+using LiveChartsCore.Measure;
 
 namespace BCH_PROJEKT
 {
@@ -26,25 +30,78 @@ namespace BCH_PROJEKT
         private bool BCHCodingEnable = false;
         private bool FastMode = true;
         private bool noiseGenerationEnabled = false;
-       
+         private ViewModel viewModel;
         public MainWindow()
         {
+            
             InitializeComponent(); //komentarz
             ConnectToPort();
-            DataContext = new ViewModel();
-
+            viewModel = new ViewModel();
+            DataContext = viewModel;
         }
 
-        public class ViewModel
-        {
-            public ISeries[] Series { get; set; } = [
-                new ColumnSeries<int>(3,4,2),
-                new ColumnSeries<int>(4,2,6),
-                new ColumnSeries<double,DiamondGeometry>(4,3,4)
-                ];
+        public class ViewModel {
+
+           
+            public ObservableCollection<int> SentBits { get; set; } = new ObservableCollection<int>();
+             public ObservableCollection<int> ReceivedBits { get; set; } = new ObservableCollection<int>();
+
+             public ISeries[] Series { get; set; }
+
+            public Axis[] YAxes { get; set; } = new Axis[] //setting Axis Y
+             {
             
-        }
+                 new Axis
+                {
+                    MinLimit = -0.1,
+                    MaxLimit = 1.1,
+                    MinStep = 1,
+                    Labeler = value => value.ToString("0"),
+                    
+                 }
+             };
 
+            public Axis[] XAxes { get; set; } = new Axis[] //setting Axis Y
+            {
+                new Axis
+                 {
+                    MinLimit = -0.5,
+                    MaxLimit = 7.5,
+                    MinStep = 1,
+                    UnitWidth = 1,
+                    Labeler = value => value.ToString("0"),
+                    LabelsRotation = 0
+                    
+                     
+                 }
+            };
+
+            public ViewModel()
+    {
+                Series = new ISeries[] 
+                {
+            new LineSeries<int>
+            {
+                    Values = SentBits,
+                    Name = "Send",
+                    Fill = null,
+                    GeometrySize=7.5,
+                    Stroke = new SolidColorPaint(SKColors.Green) { StrokeThickness = 2 } // color od the line in chart and thickness
+
+            },
+            new LineSeries<int>
+            {
+                    Values = ReceivedBits,
+                    Name = "Recived",
+                    Fill = null,
+                    GeometrySize=7.5,
+                    Stroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 } // color od the line in chart and thickness
+                }
+            };
+        }
+    }
+
+        //connecting to port function and data
         private void ConnectToPort()
         {
             string[] ports = SerialPort.GetPortNames();
@@ -69,33 +126,64 @@ namespace BCH_PROJEKT
            ;
         }
 
+        //fucntion for data that we recive 
         private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            string incomingData = serialPort.ReadExisting();
-            Dispatcher.Invoke(() => {
-
-                RecivedTextBox.AppendText(incomingData);
+            string incomingData = serialPort.ReadLine(); 
+           
+            Dispatcher.Invoke(() =>
+            {
+                RecivedTextBox.AppendText(incomingData + "\n");
                 RecivedTextBox.ScrollToEnd();
 
-            
+                viewModel.ReceivedBits.Clear();
+
+                foreach (char bit in incomingData.Trim())
+                {
+                    if (bit == '0' || bit == '1')
+                    {
+                        if (bit == '1')
+                        {
+                            viewModel.ReceivedBits.Add(1);
+                        }
+                        else
+                        {
+                            viewModel.ReceivedBits.Add(0);
+                        }
+                    }
+                }
             });
         }
 
+        // fucntion for sending data 
         private void SendCommandButton_Click(object sender, RoutedEventArgs e) {
 
-            string UserInput;
-            if (!string.IsNullOrEmpty(Box.Text))
+            string UserInput = Box.Text.Trim();
+           
+            if (UserInput.Length != 7 || !UserInput.All( c=> c =='0' || c=='1' ))
             {
-                UserInput = Box.Text;
+                RecivedTextBox.Text = "WRONG INPUT";
+
+                return;
             }
-            else
+           
+            string command = "0" + UserInput;
+
+            viewModel.SentBits.Clear();
+            //sending to chart
+            foreach (char bit in command)
             {
-                UserInput = "";
+                if (bit == '1')
+                {
+                    viewModel.SentBits.Add(1);
+                }
+                else
+                {
+                    viewModel.SentBits.Add(0);
+                }
             }
 
-            string command = "0"+ UserInput;
-
-            if(serialPort != null && serialPort.IsOpen)
+            if (serialPort != null && serialPort.IsOpen)
             {
                 try
                 {
@@ -113,15 +201,19 @@ namespace BCH_PROJEKT
             }
         }
 
+        //function to reset everything in 1 section (sending data and reciving it ) and chart in app
         private void ResetCommandButton_Click(object sender, RoutedEventArgs e)
         {
 
             Box.Clear();
             RecivedTextBox.Clear();
+
+            viewModel.SentBits.Clear();
+            viewModel.ReceivedBits.Clear();
         }
 
-        // KOMENDY
-
+             
+        //function to button 
         private void YES_button_Click(object sender,RoutedEventArgs e)
         {
             Option.Visibility = Visibility.Visible;
@@ -136,6 +228,7 @@ namespace BCH_PROJEKT
 
         }
 
+        //function to button 
         private void NO_button_Click(Object sender, RoutedEventArgs e)
         {
             Option.Visibility = Visibility.Collapsed;
@@ -150,6 +243,7 @@ namespace BCH_PROJEKT
             BitErrorSlider.Value = 0;
         }
 
+        //function to button 
         private void GaussianNoiseButton_Click(object sender, RoutedEventArgs e)
         {
 
@@ -158,7 +252,7 @@ namespace BCH_PROJEKT
           
         }
 
-        
+        //function to button 
         private void BitErrorGeneratorButton_Click(object sender, RoutedEventArgs e)
         {
             BitErrorOptionsPanel.Visibility = Visibility.Visible;
@@ -169,7 +263,7 @@ namespace BCH_PROJEKT
 
 
         }
-
+        //function update connection status
         private void UpdateConnectionStatus(bool isConnected)
         {
             if (ConnectionStatusDot != null)
@@ -177,15 +271,8 @@ namespace BCH_PROJEKT
                 ConnectionStatusDot.Fill = isConnected ? Brushes.Green : Brushes.Red;
             }
         }
-        private void GenGenerateErrorsButton_Click(object sender, RoutedEventArgs e)
-        {
 
-            MessageBox.Show("Generate bit error base on choosen bits. ");
-        }
-        private void GenerateErrorsButton_Click(object sender, RoutedEventArgs e) 
-        {
-            MessageBox.Show("button erroor. ");
-        }
+       
 
     }
 }
