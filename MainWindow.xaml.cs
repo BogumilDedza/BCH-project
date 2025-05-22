@@ -18,6 +18,7 @@ using System.Collections.ObjectModel;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using LiveChartsCore.Measure;
+using System.Windows.Threading;
 
 namespace BCH_PROJEKT
 {
@@ -26,7 +27,9 @@ namespace BCH_PROJEKT
     /// </summary>
     public partial class MainWindow : Window
     {
+        
         private SerialPort serialPort;
+        private Dispatcher connectionChecker;
         private bool BCHCodingEnable = false;
         private bool FastMode = true;
         private bool noiseGenerationEnabled = false;
@@ -38,6 +41,8 @@ namespace BCH_PROJEKT
             ConnectToPort();
             viewModel = new ViewModel();
             DataContext = viewModel;
+
+
         }
 
         public class ViewModel {
@@ -101,105 +106,175 @@ namespace BCH_PROJEKT
         }
     }
 
+
+        private void DisposeSerialPort()
+        {
+            try
+            {
+                if (serialPort != null)
+                {
+                    if (serialPort.IsOpen)
+                        serialPort.DataReceived -= SerialPort_DataReceived;
+                    serialPort.Close();
+                    serialPort.Dispose();
+                }
+            }
+            catch { }
+            serialPort = null;
+        }
         //connecting to port function and data
         private void ConnectToPort()
         {
+            DisposeSerialPort();
+
             string[] ports = SerialPort.GetPortNames();
+
+            if (ports.Length == 0)
+            {
+                UpdateConnectionStatus(false);
+                return;
+            }
+
             foreach (string port in ports)
             {
                 try
                 {
-                    serialPort = new SerialPort(port, 9600);
+                    serialPort = new SerialPort
+                    {
+                        PortName = port,
+                        BaudRate = 9600,
+                        DataBits = 7,
+                        Parity = Parity.Even,
+                        Handshake = Handshake.None,
+                        Encoding = Encoding.ASCII,
+                        ReadTimeout = 1000,
+                        WriteTimeout = 1000
+                    };
+
                     serialPort.DataReceived += SerialPort_DataReceived;
                     serialPort.Open();
-                    UpdateConnectionStatus(true);
-                    return;
+
+                    if (serialPort.IsOpen)
+                    {
+                        UpdateConnectionStatus(true);
+                        return;
+                    }
                 }
                 catch
                 {
-                    
+                    DisposeSerialPort();
                 }
             }
 
-            serialPort = null;
             UpdateConnectionStatus(false);
-           ;
         }
 
-        //fucntion for data that we recive 
-        private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        private async Task AddBitsToSeries(ObservableCollection<int> targetCollection, string binaryString, int delayMs)
         {
-            string incomingData = serialPort.ReadLine(); 
-           
-            Dispatcher.Invoke(() =>
+            foreach (char bit in binaryString)
             {
-                RecivedTextBox.AppendText(incomingData + "\n");
-                RecivedTextBox.ScrollToEnd();
-
-                viewModel.ReceivedBits.Clear();
-
-                foreach (char bit in incomingData.Trim())
-                {
-                    if (bit == '0' || bit == '1')
-                    {
-                        if (bit == '1')
-                        {
-                            viewModel.ReceivedBits.Add(1);
-                        }
-                        else
-                        {
-                            viewModel.ReceivedBits.Add(0);
-                        }
-                    }
-                }
-            });
-        }
-
-        // fucntion for sending data 
-        private void SendCommandButton_Click(object sender, RoutedEventArgs e) {
-
-            string UserInput = Box.Text.Trim();
-           
-            if (UserInput.Length != 7 || !UserInput.All( c=> c =='0' || c=='1' ))
-            {
-                RecivedTextBox.Text = "WRONG INPUT";
-
-                return;
-            }
-           
-            string command = "0" + UserInput;
-
-            viewModel.SentBits.Clear();
-            //sending to chart
-            foreach (char bit in command)
-            {
+                int ValueBit;
                 if (bit == '1')
                 {
-                    viewModel.SentBits.Add(1);
+                    ValueBit = 1;
                 }
                 else
                 {
-                    viewModel.SentBits.Add(0);
+                    ValueBit = 0;
                 }
-            }
 
-            if (serialPort != null && serialPort.IsOpen)
+                    await Dispatcher.InvokeAsync(() =>
+                {
+                    if (targetCollection.Count > 100)
+                        targetCollection.RemoveAt(0);
+
+                    targetCollection.Add(ValueBit);
+                });
+
+                await Task.Delay(delayMs);
+            }
+        }
+
+
+
+
+        //fucntion for data that we recive 
+        private async void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            try
             {
-                try
+                int incomingData = serialPort.ReadByte();
+                string binaryString = Convert.ToString(incomingData, 2).PadLeft(7, '0');
+
+                await Dispatcher.InvokeAsync(() =>
                 {
-                    serialPort.WriteLine(command);
-                }
-                catch
-                {
-                    MessageBox.Show("Device disconnected. Attempting to reconnect...");
-                    ConnectToPort(); 
-                }
+                    RecivedTextBox.Clear();
+                    RecivedTextBox.AppendText(binaryString + "\n");
+                    RecivedTextBox.ScrollToEnd();
+                });
+
+                await AddBitsToSeries(viewModel.ReceivedBits, binaryString, 500);
+            }
+            catch (TimeoutException)
+            {
+                
+            }
+        }
+        private bool IsPortConnected()
+        {
+            if (serialPort != null)
+            {
+                return serialPort.IsOpen;
             }
             else
             {
-                RecivedTextBox.Text="no connection"; 
+                return false;
             }
         }
+        
+        // fucntion for sending data 
+        private async void SendCommandButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsPortConnected())
+            {
+                RecivedTextBox.Text = "Waiting ...";
+                ConnectToPort();
+
+                if (!IsPortConnected())
+                {
+                    RecivedTextBox.Text = "Can't connect";
+                    return;
+                }
+            }
+
+            string userInput = Box.Text.Trim();
+
+            if (userInput.Length != 7 || !userInput.All(c => c == '0' || c == '1'))
+            {
+                RecivedTextBox.Text = "WRONG INPUT";
+                return;
+            }
+
+            viewModel.SentBits.Clear();
+
+            await AddBitsToSeries(viewModel.SentBits, userInput, 400);
+
+            byte dataToSend = Convert.ToByte(userInput, 2);
+
+            try
+            {
+                serialPort.Write(new byte[] { dataToSend }, 0, 1);
+            }
+            catch (Exception)
+            {
+                UpdateConnectionStatus(false);
+                MessageBox.Show("Device disconnected. Attempting to reconnect...");
+                ConnectToPort();
+            }
+        }
+
+
+
 
         //function to reset everything in 1 section (sending data and reciving it ) and chart in app
         private void ResetCommandButton_Click(object sender, RoutedEventArgs e)

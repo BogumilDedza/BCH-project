@@ -19,26 +19,34 @@
         </Style>
 
         <Style TargetType="Button">
-            <Setter Property="Foreground" Value="#E0E0E0"/>
-            <Setter Property="Background" Value="#4A4A4A"/>
-            <Setter Property="BorderBrush" Value="#A0A0A0"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="6,2"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Cursor" Value="Hand"/>
-
-
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <!-- button change coolor of hower idk why its not working -->
-
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#DE004A"/>
-                    <Setter Property="BorderBrush" Value="#FF80A0"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+    <Setter Property="Foreground" Value="#E0E0E0"/>
+    <Setter Property="Background" Value="#4A4A4A"/>
+    <Setter Property="BorderBrush" Value="#A0A0A0"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Padding" Value="6,2"/>
+    <Setter Property="Margin" Value="5"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="Button">
+                <Border 
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="1"
+                    Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#DE004A"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
 
         <Style TargetType="TextBox">
             <Setter Property="Foreground" Value="#1E1E1E"/>
@@ -62,6 +70,58 @@
             </Setter>
             <Setter Property="Margin" Value="10"/>
         </Style>
+
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="#3A3A3A"/>
+            <Setter Property="BorderBrush" Value="#A0A0A0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+
+        <!-- Styl dla TabItem -->
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="#4A4A4A"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="BorderBrush" Value="#A0A0A0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border 
+                    Name="Border"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="1,1,1,1"
+                    Padding="8"
+                    >
+                            <ContentPresenter 
+                        x:Name="ContentSite"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        ContentSource="Header"
+                        RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#DE004A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#FF80A0"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
 
     
@@ -102,7 +162,7 @@
                     
                     
                     <TextBox x:Name="Box" Width="300" Height="30"/>
-                    <TextBox Name="RecivedTextBox" Width="300" Height="30" IsReadOnly="True" VerticalScrollBarVisibility="Auto"/>
+                    <TextBox Name="RecivedTextBox" Width="300" Height="30" IsReadOnly="True" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
                         <Button Content="Send command" Width="100" Click="SendCommandButton_Click" />
                         <Button Content="Reset command" Width="100" Click="ResetCommandButton_Click"/>
@@ -163,35 +223,49 @@
         <!--Chart section-->
         <Grid Grid.Column="1" Margin="30">
 
+            <TabControl Grid.Row="0"
+                Background="#3A3A3A"
+        BorderBrush="#A0A0A0"
+        BorderThickness="1"
+        Margin="10"
+        Foreground="#E0E0E0"
+        FontWeight="Bold"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch">
 
-            <!--Height-->
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-                
-            </Grid.RowDefinitions>
-            <!--Chart settings-->
-            <Border CornerRadius="20" Background="White" Padding="5" Margin="5">
-                
-                    <lvc:CartesianChart
-                      Height="Auto" 
-                      Width="Auto"
-                      Series="{Binding Series}"
-                      YAxes="{Binding YAxes}" 
-                      XAxes="{Binding XAxes}"
-                      DrawMarginFrame="{x:Null}"
-                      ZoomMode="None"
-                      LegendPosition="Top"
-                      Background="White"
-                      Margin="10,10,20,20"   
-                     
-                    />
-                
-            </Border>
+                <TabItem Header="Sent and recived data" Padding="10">
+                    <Grid Background="#3A3A3A" Margin="5" >
+                        <lvc:CartesianChart
+                         Series="{Binding Series}"
+                         YAxes="{Binding YAxes}"
+                         XAxes="{Binding XAxes}"
+                         ZoomMode="None"
+                         LegendPosition="Top"
+                         Background="White"
+                         Foreground="#1E1E1E"/>
+                     </Grid>
+                </TabItem>
+
+               
+                <TabItem Header="BER " Padding="10">
+                    <Grid Background="#3A3A3A" Margin="5" >
+                        <lvc:CartesianChart
+                        Series="{Binding BERSeries}"
+                        YAxes="{Binding BERYAxes}"
+                        XAxes="{Binding BERXAxes}"
+                        ZoomMode="None"
+                        LegendPosition="Top"
+                        Background="White"
+                        Foreground="#1E1E1E"/>
+                    </Grid>
+                </TabItem>
+
+                    
+               
+            </TabControl>
 
         </Grid>
-   
-    
+
     </Grid>
     
 </Window>
