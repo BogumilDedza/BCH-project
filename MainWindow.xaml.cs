@@ -196,44 +196,51 @@ namespace BCH_PROJEKT
 
                 if (!IsPortConnected())
                 {
-                    RecivedTextBox.Text = "Can't connect";
+                    RecivedTextBox.Text = "Please connect your device.";
                     return;
                 }
             }
 
             string userInput = Box.Text.Trim();
 
-            if (userInput.Length != 8 || !userInput.All(c => c == '0' || c == '1'))
+            if (string.IsNullOrEmpty(userInput) || userInput.Length >8 )
             {
                 RecivedTextBox.Text = "WRONG INPUT";
                 return;
             }
 
             viewModel.SentBits.Clear();
-            await AddBitsToSeries(viewModel.SentBits, userInput, 400);
 
-            byte dataToSend = Convert.ToByte(userInput, 2);
+            foreach(char c in userInput) 
+            {
+                string binary = Convert.ToString((byte)c,2).PadLeft(8,'0');
+                await AddBitsToSeries(viewModel.SentBits, binary, 400);
+                
+            }
+            // Flagi
+            byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
+            byte density = (byte)DensitySlider.Value;
+            byte bitError = (byte)BitErrorSlider.Value;
 
             try
             {
-                // Flagi
-                byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
-
-
-                byte density = (byte)DensitySlider.Value;
-                byte bitError = (byte)BitErrorSlider.Value;
-
-                byte[] message = new byte[]
+               foreach(char c in userInput)
                 {
-            0x02,           // START: 0000_0010
-            dataToSend,     // dane użytkownika
-            flags,          // 1 bajt z 4 flagami
-            density,        // gęstość szumu
-            bitError,       // bit error
-            0xF0            // STOP: 1111_0000
-                };
+                    byte dataToSend =(byte)c;
 
-                serialPort.Write(message, 0, message.Length);
+                    byte[] message = new byte[]
+                        {
+                        0x02,           // START: 0000_0010
+                        dataToSend,     // dane użytkownika
+                        flags,          // 1 bajt z 4 flagami
+                        density,        // gęstość szumu
+                        bitError,       // bit error
+                        0xF0            // STOP: 1111_0000
+                    };
+
+                    serialPort.Write(message, 0, message.Length);
+                }
+                
             }
             catch (Exception)
             {
@@ -270,6 +277,7 @@ namespace BCH_PROJEKT
 
 
                             await AddBitsToSeries(viewModel.ReceivedBits, binaryString, 500);
+                           
 
                             buffer.RemoveRange(0, 3);
                         }
@@ -288,12 +296,13 @@ namespace BCH_PROJEKT
         }
         public class ViewModel {
 
-           
+            public ObservableCollection<double> BERValues { get; set; } = new ObservableCollection<double>();
+
             public ObservableCollection<int> SentBits { get; set; } = new ObservableCollection<int>();
              public ObservableCollection<int> ReceivedBits { get; set; } = new ObservableCollection<int>();
 
              public ISeries[] Series { get; set; }
-
+             public ISeries[] BERSeries { get; set; }
             public Axis[] YAxes { get; set; } = new Axis[] //setting Axis Y
              {
             
@@ -312,7 +321,7 @@ namespace BCH_PROJEKT
                 new Axis
                  {
                     MinLimit = -0.5,
-                    MaxLimit = 8.5,
+                    MaxLimit = 65,
                     MinStep = 1,
                     UnitWidth = 1,
                     Labeler = value => value.ToString("0"),
@@ -320,6 +329,18 @@ namespace BCH_PROJEKT
                     
                      
                  }
+            };
+
+            public Axis[] AdditionalYAxes { get; set; } = new Axis[]
+            {
+            new Axis
+            {
+             MinLimit = 0,
+                MaxLimit = 1,
+             Position = LiveChartsCore.Measure.AxisPosition.End,
+            Labeler = value => value.ToString("0.00"),
+            Name = "BER"
+            }
             };
 
             public ViewModel()
@@ -344,10 +365,24 @@ namespace BCH_PROJEKT
                     Stroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 } // color od the line in chart and thickness
                 }
             };
+
+        BERSeries = new ISeries[]
+            {
+             new LineSeries<double>
+                {
+                    Values = BERValues,
+                    Name = "BER",
+                    Fill = null,
+                    GeometrySize = 7.5,
+                    Stroke = new SolidColorPaint(SKColors.Blue) { StrokeThickness = 2 },
+                    ScalesYAt = 0  // zakładam osobna oś Y
+                }
+            };
+
+            }
         }
-    }
 
-
+        
         private async Task AddBitsToSeries(ObservableCollection<int> targetCollection, string binaryString, int delayMs)
         {
             bitAddingCancellationToken?.Cancel(); 
@@ -423,6 +458,8 @@ namespace BCH_PROJEKT
 
             viewModel.SentBits.Clear();
             viewModel.ReceivedBits.Clear();
+
+            viewModel.BERValues.Clear();
         }
 
              
