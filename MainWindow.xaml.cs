@@ -27,24 +27,265 @@ namespace BCH_PROJEKT
     /// </summary>
     public partial class MainWindow : Window
     {
-        
-        private SerialPort serialPort;
-        private Dispatcher connectionChecker;
+        private CancellationTokenSource bitAddingCancellationToken;
+        private SerialPort serialPort;//+
+        private Dispatcher connectionChecker;//+
         private bool BCHCodingEnable = false;
         private bool FastMode = true;
         private bool noiseGenerationEnabled = false;
          private ViewModel viewModel;
+        private DispatcherTimer pingTimer;
+        private bool bitErrorEnabled = false;
+        private bool IsBchCodingEnabled = false;
+        private bool IsFastModeEnabled = false;
+        private bool IsNoiseGenerationEnabled = false;
+        private bool isConnectedDotGreen = false; //+
+        private string selectedPortName = "";
         public MainWindow()
         {
             
             InitializeComponent(); //komentarz
-            ConnectToPort();
+            pingTimer = new DispatcherTimer();
+            pingTimer.Interval = TimeSpan.FromSeconds(1);
+            pingTimer.Tick += PingTimer_Tick;
+            pingTimer.Start();
             viewModel = new ViewModel();
             DataContext = viewModel;
+            RefreshPortsList();
 
-
+            DispatcherTimer comRefreshTimer = new DispatcherTimer();
+            comRefreshTimer.Interval = TimeSpan.FromSeconds(1);
+            comRefreshTimer.Tick += (s, e) => RefreshPortsList();
+            comRefreshTimer.Start();
         }
 
+        private void RefreshPortsList()
+        {
+            var availablePorts = SerialPort.GetPortNames();
+           
+            PortsComboBox.ItemsSource = null;
+            PortsComboBox.ItemsSource = availablePorts;
+
+            
+            if (!string.IsNullOrEmpty(selectedPortName) && availablePorts.Contains(selectedPortName))
+            {
+                PortsComboBox.SelectedItem = selectedPortName;
+            }
+            else if (availablePorts.Length > 0)
+            {
+                PortsComboBox.SelectedIndex = 0;
+                selectedPortName = PortsComboBox.SelectedItem.ToString();
+            }
+        }
+
+        private void PortsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PortsComboBox.SelectedItem != null)
+            {
+                selectedPortName = PortsComboBox.SelectedItem.ToString();
+            }
+        }
+
+        private void RefreshPortsButton_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshPortsList();
+        }
+        //COnectivity
+        private void ConnectToPort(string portName)
+        {
+            DisposeSerialPort();
+
+            try
+            {
+                serialPort = new SerialPort
+                {
+                    PortName = portName,
+                    BaudRate = 9600,
+                    DataBits = 8,
+                    Handshake = Handshake.None,
+                    Encoding = Encoding.ASCII,
+                    ReadTimeout = 1000,
+                    WriteTimeout = 1000
+                };
+
+                serialPort.DataReceived += SerialPort_DataReceived;
+                serialPort.Open();
+
+                if (serialPort.IsOpen)
+                {
+                    UpdateConnectionStatus(true);
+                }
+                else
+                {
+                    UpdateConnectionStatus(false);
+                }
+            }
+            catch
+            {
+                DisposeSerialPort();
+                UpdateConnectionStatus(false);
+            }
+        }
+
+        private void ConnectButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (PortsComboBox.SelectedItem != null)
+            {
+                string selectedPort = PortsComboBox.SelectedItem.ToString();
+                ConnectToPort(selectedPort);
+            }
+            else
+            {
+                RecivedTextBox.Text="Choose COM.";
+            }
+        }
+        private void ConnectToPort()
+        {
+            if (!string.IsNullOrEmpty(selectedPortName))
+            {
+                ConnectToPort(selectedPortName);
+            }
+        }
+        private bool IsPortConnected()
+        {
+            if (serialPort != null)
+            {
+                return serialPort.IsOpen;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+       
+        private void DisposeSerialPort()
+        {
+            try
+            {
+                if (serialPort != null)
+                {
+                    if (serialPort.IsOpen)
+                        serialPort.DataReceived -= SerialPort_DataReceived;
+                    serialPort.Close();
+                    serialPort.Dispose();
+                }
+            }
+            catch { }
+            serialPort = null;
+        }
+
+        List<byte> buffer = new List<byte>();
+
+        private byte BuildFlagsByte(bool bch, bool fast, bool noise, bool bitError)
+        {
+            byte flags = 0;
+            if (bch) flags |= 1 << 7;
+            if (fast) flags |= 1 << 6;
+            if (noise) flags |= 1 << 5;
+            if (bitError) flags |= 1 << 4;
+            return flags;
+        }
+
+        private async void SendCommandButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsPortConnected())
+            {
+                RecivedTextBox.Text = "Waiting ...";
+                ConnectToPort();
+
+                if (!IsPortConnected())
+                {
+                    RecivedTextBox.Text = "Can't connect";
+                    return;
+                }
+            }
+
+            string userInput = Box.Text.Trim();
+
+            if (userInput.Length != 8 || !userInput.All(c => c == '0' || c == '1'))
+            {
+                RecivedTextBox.Text = "WRONG INPUT";
+                return;
+            }
+
+            viewModel.SentBits.Clear();
+            await AddBitsToSeries(viewModel.SentBits, userInput, 400);
+
+            byte dataToSend = Convert.ToByte(userInput, 2);
+
+            try
+            {
+                // Flagi
+                byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
+
+
+                byte density = (byte)DensitySlider.Value;
+                byte bitError = (byte)BitErrorSlider.Value;
+
+                byte[] message = new byte[]
+                {
+            0x02,           // START: 0000_0010
+            dataToSend,     // dane użytkownika
+            flags,          // 1 bajt z 4 flagami
+            density,        // gęstość szumu
+            bitError,       // bit error
+            0xF0            // STOP: 1111_0000
+                };
+
+                serialPort.Write(message, 0, message.Length);
+            }
+            catch (Exception)
+            {
+                UpdateConnectionStatus(false);
+                MessageBox.Show("Device disconnected. Attempting to reconnect...");
+                ConnectToPort();
+            }
+        }
+
+        private async void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            try
+            {
+                while (serialPort.BytesToRead > 0)
+                {
+                    byte Byte = (byte)serialPort.ReadByte();
+                    buffer.Add(Byte);
+
+
+                    while (buffer.Count >= 3)
+                    {
+                        if (buffer[0] == 0x03 && buffer[2] == 0xF1)
+                        {
+                            byte dataByte = buffer[1];
+                            string binaryString = Convert.ToString(dataByte, 2).PadLeft(8, '0');
+
+
+                            await Dispatcher.InvokeAsync(() =>
+                            {
+                                RecivedTextBox.Clear();
+                                RecivedTextBox.AppendText($"Odebrano dane: {binaryString}\n");
+                                RecivedTextBox.ScrollToEnd();
+                            });
+
+
+                            await AddBitsToSeries(viewModel.ReceivedBits, binaryString, 500);
+
+                            buffer.RemoveRange(0, 3);
+                        }
+                        else
+                        {
+
+                            buffer.RemoveAt(0);
+                        }
+                    }
+                }
+            }
+            catch (TimeoutException)
+            {
+
+            }
+        }
         public class ViewModel {
 
            
@@ -59,7 +300,7 @@ namespace BCH_PROJEKT
                  new Axis
                 {
                     MinLimit = -0.1,
-                    MaxLimit = 1.1,
+                    MaxLimit = 1.2,
                     MinStep = 1,
                     Labeler = value => value.ToString("0"),
                     
@@ -71,7 +312,7 @@ namespace BCH_PROJEKT
                 new Axis
                  {
                     MinLimit = -0.5,
-                    MaxLimit = 7.5,
+                    MaxLimit = 8.5,
                     MinStep = 1,
                     UnitWidth = 1,
                     Labeler = value => value.ToString("0"),
@@ -107,72 +348,16 @@ namespace BCH_PROJEKT
     }
 
 
-        private void DisposeSerialPort()
-        {
-            try
-            {
-                if (serialPort != null)
-                {
-                    if (serialPort.IsOpen)
-                        serialPort.DataReceived -= SerialPort_DataReceived;
-                    serialPort.Close();
-                    serialPort.Dispose();
-                }
-            }
-            catch { }
-            serialPort = null;
-        }
-        //connecting to port function and data
-        private void ConnectToPort()
-        {
-            DisposeSerialPort();
-
-            string[] ports = SerialPort.GetPortNames();
-
-            if (ports.Length == 0)
-            {
-                UpdateConnectionStatus(false);
-                return;
-            }
-
-            foreach (string port in ports)
-            {
-                try
-                {
-                    serialPort = new SerialPort
-                    {
-                        PortName = port,
-                        BaudRate = 9600,
-                        DataBits = 7,
-                        Parity = Parity.Even,
-                        Handshake = Handshake.None,
-                        Encoding = Encoding.ASCII,
-                        ReadTimeout = 1000,
-                        WriteTimeout = 1000
-                    };
-
-                    serialPort.DataReceived += SerialPort_DataReceived;
-                    serialPort.Open();
-
-                    if (serialPort.IsOpen)
-                    {
-                        UpdateConnectionStatus(true);
-                        return;
-                    }
-                }
-                catch
-                {
-                    DisposeSerialPort();
-                }
-            }
-
-            UpdateConnectionStatus(false);
-        }
-
         private async Task AddBitsToSeries(ObservableCollection<int> targetCollection, string binaryString, int delayMs)
         {
+            bitAddingCancellationToken?.Cancel(); 
+            bitAddingCancellationToken = new CancellationTokenSource();
+            var token = bitAddingCancellationToken.Token;
+
             foreach (char bit in binaryString)
             {
+                if (token.IsCancellationRequested) { break; }
+                  
                 int ValueBit;
                 if (bit == '1')
                 {
@@ -195,90 +380,43 @@ namespace BCH_PROJEKT
             }
         }
 
-
-
-
-        //fucntion for data that we recive 
-        private async void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        //Ping
+        private void PingTimer_Tick(object? sender, EventArgs e)
         {
-            try
+            if (serialPort == null || !serialPort.IsOpen)
             {
-                int incomingData = serialPort.ReadByte();
-                string binaryString = Convert.ToString(incomingData, 2).PadLeft(7, '0');
-
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    RecivedTextBox.Clear();
-                    RecivedTextBox.AppendText(binaryString + "\n");
-                    RecivedTextBox.ScrollToEnd();
-                });
-
-                await AddBitsToSeries(viewModel.ReceivedBits, binaryString, 500);
-            }
-            catch (TimeoutException)
-            {
-                
-            }
-        }
-        private bool IsPortConnected()
-        {
-            if (serialPort != null)
-            {
-                return serialPort.IsOpen;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        
-        // fucntion for sending data 
-        private async void SendCommandButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!IsPortConnected())
-            {
-                RecivedTextBox.Text = "Waiting ...";
+                UpdateConnectionStatus(false);
                 ConnectToPort();
-
-                if (!IsPortConnected())
-                {
-                    RecivedTextBox.Text = "Can't connect";
-                    return;
-                }
-            }
-
-            string userInput = Box.Text.Trim();
-
-            if (userInput.Length != 7 || !userInput.All(c => c == '0' || c == '1'))
-            {
-                RecivedTextBox.Text = "WRONG INPUT";
                 return;
             }
 
-            viewModel.SentBits.Clear();
-
-            await AddBitsToSeries(viewModel.SentBits, userInput, 400);
-
-            byte dataToSend = Convert.ToByte(userInput, 2);
-
             try
             {
-                serialPort.Write(new byte[] { dataToSend }, 0, 1);
+                // Wysyłamy ping: [argument=0x01, stop=0xF0]
+                byte[] pingMessage = new byte[] { 0x01, 0xF0 };
+                serialPort.Write(pingMessage, 0, pingMessage.Length);
+
+                UpdateConnectionStatus(true);
             }
-            catch (Exception)
+            catch
             {
                 UpdateConnectionStatus(false);
-                MessageBox.Show("Device disconnected. Attempting to reconnect...");
                 ConnectToPort();
             }
         }
 
-
-
+        private void UpdateConnectionStatus(bool isConnected)
+        {
+            if (ConnectionStatusDot != null)
+            {
+                ConnectionStatusDot.Fill = isConnected ? Brushes.Green : Brushes.Red;
+            }
+        }
 
         //function to reset everything in 1 section (sending data and reciving it ) and chart in app
         private void ResetCommandButton_Click(object sender, RoutedEventArgs e)
         {
+            bitAddingCancellationToken?.Cancel();
 
             Box.Clear();
             RecivedTextBox.Clear();
@@ -289,65 +427,155 @@ namespace BCH_PROJEKT
 
              
         //function to button 
-        private void YES_button_Click(object sender,RoutedEventArgs e)
+        private void BchYesButton_Click(object sender,RoutedEventArgs e)
         {
-            Option.Visibility = Visibility.Visible;
-            BitErrorOptionsPanel.Visibility = Visibility.Collapsed;
-            GaussianOptionsPanel.Visibility = Visibility.Collapsed;
+            BCHCodingEnable = true;
+            IsBchCodingEnabled = true;
 
-            BitErrorGeneratorButton.Visibility = Visibility.Visible;
-            GaussianNoiseButton.Visibility = Visibility.Visible;
-
-            DensitySlider.Value = 0;
-            BitErrorSlider.Value = 0;
+            SetBchButtons(true);
 
         }
 
         //function to button 
-        private void NO_button_Click(Object sender, RoutedEventArgs e)
+        private void BchNoButton_Click(Object sender, RoutedEventArgs e)
         {
-            Option.Visibility = Visibility.Collapsed;
-            BitErrorOptionsPanel.Visibility= Visibility.Collapsed;
-           GaussianOptionsPanel.Visibility = Visibility.Collapsed;
-            
-            BitErrorGeneratorButton.Visibility = Visibility.Visible;
-            GaussianNoiseButton.Visibility = Visibility.Visible;
+            BCHCodingEnable = false;
+            IsBchCodingEnabled = false;
+            SetBchButtons(false);
 
-
-            DensitySlider.Value = 0;
-            BitErrorSlider.Value = 0;
         }
 
-        //function to button 
+        private void FastButton_Click(Object sender, RoutedEventArgs e)
+        {
+            FastMode = true;
+            IsFastModeEnabled = true;
+
+           
+            SetCodingTypeButtons(true);
+        }
+
+
+        private void SlowButton_Click(Object sender, RoutedEventArgs e)
+        {
+            FastMode = false;
+            IsFastModeEnabled = false;
+            SetCodingTypeButtons(false);
+        }
+      
         private void GaussianNoiseButton_Click(object sender, RoutedEventArgs e)
         {
 
-            BitErrorGeneratorButton.Visibility = Visibility.Collapsed;
-            GaussianOptionsPanel.Visibility = Visibility.Visible;   
-          
+            noiseGenerationEnabled = true;
+            IsNoiseGenerationEnabled = true;
+            
+            GaussianNoiseButton.Visibility = Visibility.Visible;
+            BitErrorGeneratorButton.Visibility = Visibility.Visible;
+
+            DensitySlider.Visibility = Visibility.Visible;
+            BitErrorSlider.Visibility = Visibility.Collapsed;
+
+            GaussianOptionsPanel.Visibility = Visibility.Visible;
+            BitErrorOptionsPanel.Visibility = Visibility.Collapsed;
+
+            SetNoiseButtons(true);
+
+            //DensitySlider = 0;
         }
 
         //function to button 
         private void BitErrorGeneratorButton_Click(object sender, RoutedEventArgs e)
         {
-            BitErrorOptionsPanel.Visibility = Visibility.Visible;
-            GaussianOptionsPanel.Visibility = Visibility.Collapsed;
+            noiseGenerationEnabled = true;
+            IsNoiseGenerationEnabled = true;
 
+            GaussianNoiseButton.Visibility = Visibility.Visible;
             BitErrorGeneratorButton.Visibility = Visibility.Visible;
-            GaussianNoiseButton.Visibility = Visibility.Collapsed;
 
+            GaussianOptionsPanel.Visibility = Visibility.Collapsed;
+            BitErrorOptionsPanel.Visibility = Visibility.Visible;
+
+            DensitySlider.Visibility = Visibility.Collapsed;
+            BitErrorSlider.Visibility = Visibility.Visible;
+
+            SetNoiseButtons(true);
+
+            //BitErrorSlider = 0;
+        }
+        
+        private void NoiseYesButton_Click(object sender,RoutedEventArgs e)
+        {
+            noiseGenerationEnabled = true;
+            IsNoiseGenerationEnabled = true;
+            SetNoiseButtons(true);
+        }
+
+        private void NoiseNoButton_Click(object sender, RoutedEventArgs e)
+        {
+            noiseGenerationEnabled = false;
+            IsNoiseGenerationEnabled = false;
+            SetNoiseButtons(false);
+
+            GaussianOptionsPanel.Visibility = Visibility.Collapsed;
+            BitErrorOptionsPanel.Visibility = Visibility.Collapsed;
+
+            DensitySlider.Value = 0;
+            BitErrorSlider.Value = 0;
 
         }
-        //function update connection status
-        private void UpdateConnectionStatus(bool isConnected)
+
+        private void SetBchButtons(bool bchEnable)
         {
-            if (ConnectionStatusDot != null)
+            if (BchYesButton != null && BchNoButton != null)
             {
-                ConnectionStatusDot.Fill = isConnected ? Brushes.Green : Brushes.Red;
+                if (bchEnable)
+                {
+                    BchYesButton.Background = Brushes.Green;
+                    BchNoButton.ClearValue(Button.BackgroundProperty);
+                }
+                else
+                {
+                    BchYesButton.ClearValue(Button.BackgroundProperty);
+                    BchNoButton.Background = Brushes.Green;
+                }
             }
         }
 
-       
+        private void SetCodingTypeButtons(bool bchEnable)
+        {
+            if (FastButton != null && SlowButton != null)
+            {
+                if (FastMode)
+                {
+                    FastButton.Background = Brushes.Green;
+                    SlowButton.ClearValue(Button.BackgroundProperty);
+                }
+                else
+                {
+                    FastButton.ClearValue(Button.BackgroundProperty);
+                    SlowButton.Background = Brushes.Green;
+                }
+            }
+        }
+
+        private void SetNoiseButtons(bool noiseEnable)
+        {
+            if (NoiseYesButton != null && NoiseNoButton != null)
+            {
+                if (noiseGenerationEnabled)
+                {
+                    NoiseYesButton.Background = Brushes.Green;
+                    NoiseNoButton.ClearValue(Button.BackgroundProperty);
+                }
+                else
+                {
+                    NoiseYesButton.ClearValue(Button.BackgroundProperty);
+                    NoiseNoButton.Background = Brushes.Green;
+                }
+            }
+        }
+
+
+
 
     }
 }

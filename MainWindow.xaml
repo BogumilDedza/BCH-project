@@ -122,6 +122,62 @@
             </Setter>
         </Style>
 
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="#4A4A4A"/>
+            <Setter Property="BorderBrush" Value="#A0A0A0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5,2"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton 
+                        Name="ToggleButton"
+                        IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                        Focusable="false"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        Foreground="{TemplateBinding Foreground}">
+                                <ContentPresenter
+                            Margin="5"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Left"
+                            Content="{TemplateBinding SelectionBoxItem}" />
+                            </ToggleButton>
+
+                            <Popup 
+                        Name="Popup"
+                        Placement="Bottom"
+                        IsOpen="{TemplateBinding IsDropDownOpen}"
+                        AllowsTransparency="True"
+                        Focusable="False"
+                        PopupAnimation="Slide">
+                                <Border 
+                            Background="#4A4A4A"
+                            BorderBrush="#A0A0A0"
+                            BorderThickness="1"
+                            SnapsToDevicePixels="True">
+                                    <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ToggleButton" Property="Background" Value="#DE004A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     
@@ -144,16 +200,20 @@
                 </Grid.RowDefinitions>
 
             <!--Connection status idicatorr-->
-                <Border Grid.Row="0" Width="300" HorizontalAlignment="Left">
+            <Border Grid.Row="0" Margin="0,0,0,20">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Connection Status:" Margin="5,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Connection Status:" Margin="5,0,5,0" VerticalAlignment="Center"/>
                         <Ellipse x:Name="ConnectionStatusDot"
                         Width="16" Height="16"
                         Fill="Red"
                         Stroke="Black"
                         StrokeThickness="1"
                         VerticalAlignment="Center"/>
-                    </StackPanel>
+                    <ComboBox x:Name="PortsComboBox"    SelectionChanged="PortsComboBox_SelectionChanged" Width="50" Margin="5"/>
+                    <Button Content="Connect" Click="ConnectButton_Click" Margin="5" Width="60"/>
+                    <Button Name="RefreshPortsButton" Content="Refresh" Click="RefreshPortsButton_Click" Width="60"/>
+                        
+                </StackPanel>
                 </Border>
             <!--send data and recive data-->
             <Border Grid.Row="1" Margin="0,0,0,20">
@@ -176,14 +236,14 @@
 
                     <StackPanel Orientation="Horizontal" >
                         <TextBlock Text="BCH CODING" VerticalAlignment="Center" Margin="0,0,50,0"/>
-                        <Button Content="YES" Width="50"  HorizontalAlignment="Left"/>
-                        <Button Content="NO" Width="50" HorizontalAlignment="Right"/>
+                        <Button x:Name="BchYesButton" Content="YES" Width="50"  HorizontalAlignment="Left" Click="BchYesButton_Click"/>
+                        <Button x:Name="BchNoButton" Content="NO" Width="50" HorizontalAlignment="Right" Click="BchNoButton_Click"/>
                     </StackPanel>
                     <Border Margin="0,10,0,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="TYPE OF CODING" VerticalAlignment="Center"/>
-                            <Button Content="FAST" Width="60"/>
-                            <Button Content="SLOW" Width="60"/>
+                            <Button x:Name="FastButton" Content="FAST" Width="60" Click="FastButton_Click"/>
+                            <Button x:Name="SlowButton" Content="SLOW" Width="60" Click="SlowButton_Click"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -193,24 +253,24 @@
                 <StackPanel Orientation="Vertical">
                     <TextBlock Text="GENERATING RANDOM NOISE " Margin="0,0,0,10"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="YES" Width="60" Click="YES_button_Click"/>
-                        <Button Content="NO" Width="60" Click="NO_button_Click"/>
+                        <Button x:Name="NoiseYesButton" Content="YES" Width="60" Click="NoiseYesButton_Click"/>
+                        <Button x:Name="NoiseNoButton" Content="NO" Width="60" Click="NoiseNoButton_Click"/>
                     </StackPanel>
 
-                    <StackPanel Name="Option" Margin="0,10,0,0" Visibility="Collapsed">
+                    <StackPanel Name="Option" Margin="0,10,0,0" Visibility="Visible">
                         <Button Name="GaussianNoiseButton" Content="GAUSIN NOISE" Width="250" Click="GaussianNoiseButton_Click" />
                         <Button Name="BitErrorGeneratorButton" Content="BIT ERROR GENERATOR" Width="250" Click="BitErrorGeneratorButton_Click" />
 
-                        <StackPanel Name="GaussianOptionsPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,10,0,0" VerticalAlignment="Center">
+                        <StackPanel Name="GaussianOptionsPanel" Orientation="Horizontal"  Margin="0,10,0,0" VerticalAlignment="Center" Visibility="Collapsed">
                             <TextBlock Text="Density" VerticalAlignment="Center" Foreground="#E0E0E0" Margin="5"/>
                             <Slider Name="DensitySlider" Minimum="0" Maximum="100" Width="200" Margin="5" />
                             <TextBlock Foreground="#E0E0E0" VerticalAlignment="Center" Margin="5"
                              Text="{Binding ElementName=DensitySlider, Path=Value, StringFormat={}{0:0}}" />
                         </StackPanel>
 
-                        <StackPanel Name="BitErrorOptionsPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,10,0,0" VerticalAlignment="Center">
+                        <StackPanel Name="BitErrorOptionsPanel" Orientation="Horizontal"  Margin="0,10,0,0" VerticalAlignment="Center" Visibility="Collapsed">
                             <TextBlock Text="Bit Error" VerticalAlignment="Center" Foreground="#E0E0E0" Margin="5"/>
-                            <Slider Name="BitErrorSlider" Minimum="1" Maximum="7" Width="200" Margin="5" />
+                            <Slider Name="BitErrorSlider" Minimum="0" Maximum="7" Width="200" Margin="5" />
                             <TextBlock Foreground="#E0E0E0" VerticalAlignment="Center" Margin="5"
                             Text="{Binding ElementName=BitErrorSlider, Path=Value, StringFormat={}{0:0}}" />
                         </StackPanel>
