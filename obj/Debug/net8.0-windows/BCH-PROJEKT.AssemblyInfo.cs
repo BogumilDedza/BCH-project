@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BCH-projekt")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5953137c2a8eee872d6424959b20343a87ed3a85")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+48bbf632b78358d57125d60e89a36accdcc6fd39")]
 [assembly: System.Reflection.AssemblyProductAttribute("BCH-projekt")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BCH-projekt")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

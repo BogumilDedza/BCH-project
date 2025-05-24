@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:BCH_PROJEKT"
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         mc:Ignorable="d"
-        Title="BCH" Height="700" Width="800" Background="#2E2E2E">
+        Title="BCH" Height="800" Width="800" Background="#2E2E2E">
 
    
     <!--Styling sheet-->
@@ -122,62 +122,7 @@
             </Setter>
         </Style>
 
-        <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="#E0E0E0"/>
-            <Setter Property="Background" Value="#4A4A4A"/>
-            <Setter Property="BorderBrush" Value="#A0A0A0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="5,2"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBox">
-                        <Grid>
-                            <ToggleButton 
-                        Name="ToggleButton"
-                        IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                        Focusable="false"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        Foreground="{TemplateBinding Foreground}">
-                                <ContentPresenter
-                            Margin="5"
-                            VerticalAlignment="Center"
-                            HorizontalAlignment="Left"
-                            Content="{TemplateBinding SelectionBoxItem}" />
-                            </ToggleButton>
 
-                            <Popup 
-                        Name="Popup"
-                        Placement="Bottom"
-                        IsOpen="{TemplateBinding IsDropDownOpen}"
-                        AllowsTransparency="True"
-                        Focusable="False"
-                        PopupAnimation="Slide">
-                                <Border 
-                            Background="#4A4A4A"
-                            BorderBrush="#A0A0A0"
-                            BorderThickness="1"
-                            SnapsToDevicePixels="True">
-                                    <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
-                                        <StackPanel IsItemsHost="True" />
-                                    </ScrollViewer>
-                                </Border>
-                            </Popup>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ToggleButton" Property="Background" Value="#DE004A"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
 
     
@@ -200,21 +145,42 @@
                 </Grid.RowDefinitions>
 
             <!--Connection status idicatorr-->
-            <Border Grid.Row="0" Margin="0,0,0,20">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Connection Status:" Margin="5,0,5,0" VerticalAlignment="Center"/>
-                        <Ellipse x:Name="ConnectionStatusDot"
-                        Width="16" Height="16"
-                        Fill="Red"
-                        Stroke="Black"
-                        StrokeThickness="1"
-                        VerticalAlignment="Center"/>
-                    <ComboBox x:Name="PortsComboBox"    SelectionChanged="PortsComboBox_SelectionChanged" Width="50" Margin="5"/>
-                    <Button Content="Connect" Click="ConnectButton_Click" Margin="5" Width="60"/>
-                    <Button Name="RefreshPortsButton" Content="Refresh" Click="RefreshPortsButton_Click" Width="60"/>
-                        
+            <Border Grid.Row="0" Margin="0,0,0,20" Padding="10" CornerRadius="5" >
+                <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+
+                    <!-- Nagłówek z kropką statusu -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                        <TextBlock Text="SSH Settings" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                        <TextBlock Text="   Connection status:" Margin="20,0,0,0" VerticalAlignment="Center" FontSize="13"/>
+                        <Ellipse x:Name="ConnectionStatusDot" Width="14" Height="14" Margin="5,0,0,0" Fill="Red" Stroke="Black"/>
+                    </StackPanel>
+
+                    <!-- Host -->
+                    <StackPanel Orientation="Horizontal" Margin="0,5" HorizontalAlignment="Center">
+                        <TextBlock Text="Host:" Width="70" FontSize="13" VerticalAlignment="Center"/>
+                        <TextBox x:Name="SshHostTextBox" Width="160" FontSize="13" Margin="10,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- User -->
+                    <StackPanel Orientation="Horizontal" Margin="0,5" HorizontalAlignment="Center">
+                        <TextBlock Text="User:" Width="70" FontSize="13" VerticalAlignment="Center"/>
+                        <TextBox x:Name="SshUserTextBox" Width="160" FontSize="13" Margin="10,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Password -->
+                    <StackPanel Orientation="Horizontal" Margin="0,5" HorizontalAlignment="Center">
+                        <TextBlock Text="Password:" Width="70" FontSize="13" VerticalAlignment="Center"/>
+                        <PasswordBox x:Name="SshPasswordBox" Width="160" Margin="10,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Przycisk -->
+                    <Button Content="Apply SSH Settings" Width="160" FontSize="13" Margin="0,15,0,0" Click="ApplySshSettings_Click" HorizontalAlignment="Center"/>
+
                 </StackPanel>
-                </Border>
+            </Border>
+
+
+
             <!--send data and recive data-->
             <Border Grid.Row="1" Margin="0,0,0,20">
                 <StackPanel >

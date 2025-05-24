@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "bEbWryOfDF8=",
+  "dgSpecHash": "0xOoKAL2Hj8=",
   "success": true,
   "projectFilePath": "C:\\Users\\bozyd\\Documents\\GitHub\\BCH-project\\BCH-projekt.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\bozyd\\.nuget\\packages\\bouncycastle.cryptography\\2.5.1\\bouncycastle.cryptography.2.5.1.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\harfbuzzsharp\\8.3.0.1\\harfbuzzsharp.8.3.0.1.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\harfbuzzsharp.nativeassets.macos\\8.3.0.1\\harfbuzzsharp.nativeassets.macos.8.3.0.1.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\harfbuzzsharp.nativeassets.win32\\8.3.0.1\\harfbuzzsharp.nativeassets.win32.8.3.0.1.nupkg.sha512",
@@ -12,6 +13,8 @@
     "C:\\Users\\bozyd\\.nuget\\packages\\livechartscore\\2.0.0-rc5.4\\livechartscore.2.0.0-rc5.4.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\livechartscore.skiasharpview\\2.0.0-rc5.4\\livechartscore.skiasharpview.2.0.0-rc5.4.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\livechartscore.skiasharpview.wpf\\2.0.0-rc5.4\\livechartscore.skiasharpview.wpf.2.0.0-rc5.4.nupkg.sha512",
+    "C:\\Users\\bozyd\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.2\\microsoft.extensions.dependencyinjection.abstractions.8.0.2.nupkg.sha512",
+    "C:\\Users\\bozyd\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.3\\microsoft.extensions.logging.abstractions.8.0.3.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\opentk\\3.3.1\\opentk.3.3.1.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\opentk.glwpfcontrol\\3.3.0\\opentk.glwpfcontrol.3.3.0.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\runtime.android-arm.runtime.native.system.io.ports\\9.0.5\\runtime.android-arm.runtime.native.system.io.ports.9.0.5.nupkg.sha512",
@@ -37,6 +40,7 @@
     "C:\\Users\\bozyd\\.nuget\\packages\\skiasharp.nativeassets.win32\\3.116.1\\skiasharp.nativeassets.win32.3.116.1.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\skiasharp.views.desktop.common\\3.116.1\\skiasharp.views.desktop.common.3.116.1.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\skiasharp.views.wpf\\3.116.1\\skiasharp.views.wpf.3.116.1.nupkg.sha512",
+    "C:\\Users\\bozyd\\.nuget\\packages\\ssh.net\\2025.0.0\\ssh.net.2025.0.0.nupkg.sha512",
     "C:\\Users\\bozyd\\.nuget\\packages\\system.io.ports\\9.0.5\\system.io.ports.9.0.5.nupkg.sha512"
   ],
   "logs": [
