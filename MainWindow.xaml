@@ -148,34 +148,35 @@
             <Border Grid.Row="0" Margin="0,0,0,20" Padding="10" CornerRadius="5" >
                 <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
 
-                    <!-- Nagłówek z kropką statusu -->
+                    
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                         <TextBlock Text="SSH Settings" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
                         <TextBlock Text="   Connection status:" Margin="20,0,0,0" VerticalAlignment="Center" FontSize="13"/>
                         <Ellipse x:Name="ConnectionStatusDot" Width="14" Height="14" Margin="5,0,0,0" Fill="Red" Stroke="Black"/>
                     </StackPanel>
 
-                    <!-- Host -->
                     <StackPanel Orientation="Horizontal" Margin="0,5" HorizontalAlignment="Center">
                         <TextBlock Text="Host:" Width="70" FontSize="13" VerticalAlignment="Center"/>
                         <TextBox x:Name="SshHostTextBox" Width="160" FontSize="13" Margin="10,0,0,0"/>
                     </StackPanel>
 
-                    <!-- User -->
+                    
                     <StackPanel Orientation="Horizontal" Margin="0,5" HorizontalAlignment="Center">
                         <TextBlock Text="User:" Width="70" FontSize="13" VerticalAlignment="Center"/>
                         <TextBox x:Name="SshUserTextBox" Width="160" FontSize="13" Margin="10,0,0,0"/>
                     </StackPanel>
 
-                    <!-- Password -->
+                    
                     <StackPanel Orientation="Horizontal" Margin="0,5" HorizontalAlignment="Center">
                         <TextBlock Text="Password:" Width="70" FontSize="13" VerticalAlignment="Center"/>
                         <PasswordBox x:Name="SshPasswordBox" Width="160" Margin="10,0,0,0"/>
                     </StackPanel>
 
-                    <!-- Przycisk -->
-                    <Button Content="Apply SSH Settings" Width="160" FontSize="13" Margin="0,15,0,0" Click="ApplySshSettings_Click" HorizontalAlignment="Center"/>
-
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0.5">
+                        <Button Content="Connect with SSH" Width="140" FontSize="13"  Click="ApplySshSettings_Click" HorizontalAlignment="Center"/>
+                        <Button Content="Reset SSH" Width="140" FontSize="13"  Click="ResetSshSettings_Click" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    
                 </StackPanel>
             </Border>
 
@@ -184,11 +185,19 @@
             <!--send data and recive data-->
             <Border Grid.Row="1" Margin="0,0,0,20">
                 <StackPanel >
-                  
-                    
-                    
-                    <TextBox x:Name="Box" Width="300" Height="30"/>
-                    <TextBox Name="RecivedTextBox" Width="300" Height="30" IsReadOnly="True" />
+
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                        <TextBlock Text="Data send" Width="110" VerticalAlignment="Center" />
+                        <TextBox x:Name="Box" Width="200" Height="30"/>
+                    </StackPanel>
+
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                        <TextBlock Text="Data received" Width="110" VerticalAlignment="Center"  />
+                        <TextBox x:Name="RecivedTextBox" Width="200" Height="30" IsReadOnly="True" />
+                    </StackPanel>
+
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
                         <Button Content="Send command" Width="100" Click="SendCommandButton_Click" />
                         <Button Content="Reset command" Width="100" Click="ResetCommandButton_Click"/>

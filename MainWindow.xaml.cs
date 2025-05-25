@@ -36,6 +36,7 @@ namespace BCH_PROJEKT
         private bool IsNoiseGenerationEnabled = false;
         private DispatcherTimer sshPingTimer;
         private bool isSshConnected = false;
+        private bool isPingRunning = false;
 
         private string sshHost = "";
         private string sshUser = "username";
@@ -75,6 +76,7 @@ namespace BCH_PROJEKT
             {
                 try
                 {
+                    sshClient?.Dispose();
                     sshClient = new SshClient(sshHost, sshUser, sshPassword);
                     sshClient.Connect();
                     bool ok = false;
@@ -83,7 +85,7 @@ namespace BCH_PROJEKT
                         using var cmd = sshClient.CreateCommand("echo ok");
                         var result = cmd.Execute().Trim();
                         ok = result == "ok";
-                        sshClient.Disconnect();
+                        
                     }
 
                     return ok;
@@ -108,6 +110,32 @@ namespace BCH_PROJEKT
             }
         }
 
+        private void ResetSshConnection()
+        {
+            try
+            {
+                if (sshClient != null)
+                {
+                    if (sshClient.IsConnected)
+                        sshClient.Disconnect();
+
+                    sshClient.Dispose();
+                    sshClient = null;
+                }
+
+                isSshConnected = false;
+                UpdateConnectionStatus(false);
+
+                // Opcjonalne: wyczyść pola
+                SshHostTextBox.Text = "";
+                SshUserTextBox.Text = "";
+                SshPasswordBox.Password = "";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error resetting SSH connection: " + ex.Message);
+            }
+        }
 
         // tutaj flaga czyli BCH,FAST NOISE BIT ERROR
         private byte BuildFlagsByte(bool bch, bool fast, bool noise, bool bitError)
@@ -165,7 +193,7 @@ namespace BCH_PROJEKT
                     Dispatcher.Invoke(() =>
                     {
                         RecivedTextBox.Clear();
-                        RecivedTextBox.AppendText("Recived data:\n" + result);
+                        RecivedTextBox.AppendText(result);
                         RecivedTextBox.ScrollToEnd();
                     });
 
@@ -270,6 +298,8 @@ namespace BCH_PROJEKT
 
         private void SshPingTimer_Tick(object? sender, EventArgs e)
         {
+            if (isPingRunning) return;
+            isPingRunning = true;
             Task.Run(() =>
             {
                 bool isConnected = false;
@@ -291,6 +321,7 @@ namespace BCH_PROJEKT
                 Dispatcher.Invoke(() =>
                 {
                     UpdateConnectionStatus(isConnected);
+                    isPingRunning = false;
                 });
             });
         }
@@ -394,6 +425,12 @@ namespace BCH_PROJEKT
             BitErrorSlider.Value = 0;
         }
 
+        private void ResetSshSettings_Click(object sender, RoutedEventArgs e)
+        {
+            ResetSshConnection();
+           
+        }
+
         //Funkcje obsługujace zmiane koloru po wybraniu buttonu 
         private void SetBchButtons(bool bchEnable)
         {
@@ -445,6 +482,8 @@ namespace BCH_PROJEKT
                 }
             }
         }
+
+
 
         //Tutaj wszystkie dane potrzebne do wykresu
         public class ViewModel
