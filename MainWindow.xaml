@@ -306,7 +306,7 @@
                            Series="{Binding BerSeries}"
                             XAxes="{Binding BerX}"
                             YAxes="{Binding BerY}"
-    
+                             
                             ZoomMode="None"
                             LegendPosition="Top"
                             Background="White" />

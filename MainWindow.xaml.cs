@@ -21,6 +21,8 @@ using SkiaSharp;
 using LiveChartsCore.Measure;
 using System.Windows.Threading;
 using System.Diagnostics;
+using System.Windows.Ink;
+using LiveChartsCore.Defaults;
 
 namespace BCH_PROJEKT
 {
@@ -298,12 +300,12 @@ namespace BCH_PROJEKT
 
             if (noiseGenerationEnabled)
             {
-                errorChance += DensitySlider.Value / 100.0 *2.0; // Maksymalnie 40% z szumu
+                errorChance += DensitySlider.Value / 100.0 *2.0; 
             }
 
             if (bitErrorEnabled)
             {
-                errorChance += BitErrorSlider.Value / 100.0 * 2.0; // Maksymalnie 30% z bit error
+                errorChance += BitErrorSlider.Value / 100.0 * 2.0; 
             }
 
             // Wprowadź błędy
@@ -325,7 +327,7 @@ namespace BCH_PROJEKT
                 char[] original = input.ToCharArray();
                 for (int i = 0; i < result.Length; i++)
                 {
-                    if (result[i] != original[i] && random.NextDouble() < 0.8) // 80% korekcji
+                    if (result[i] != original[i] && random.NextDouble() < 0.7) // 70% korekcji
                     {
                         result[i] = original[i]; // Przywróć oryginalny znak
                     }
@@ -659,11 +661,14 @@ namespace BCH_PROJEKT
             }
         }
 
-
+        
 
         //Tutaj wszystkie dane potrzebne do wykresu
         public class ViewModel
         {
+
+           
+
 
             public ObservableCollection<int> SentBits { get; set; } = new ObservableCollection<int>();
             public ObservableCollection<int> ReceivedBits { get; set; } = new ObservableCollection<int>();
@@ -683,6 +688,7 @@ namespace BCH_PROJEKT
 
             public Margin DrawMargin { get; set; }
 
+
             public ViewModel()
             {
                 SentSeries = new ISeries[]
@@ -692,7 +698,8 @@ namespace BCH_PROJEKT
                 Values = SentBits,
                     Name = "Sent",
                     Fill = null,
-                    GeometrySize = 7.5,
+                   
+                    GeometrySize = 10,
                     Stroke = new SolidColorPaint(SKColors.Green) { StrokeThickness = 2 },
                     GeometryStroke= new SolidColorPaint(SKColors.Green){ StrokeThickness = 2 }
                 }
@@ -704,8 +711,9 @@ namespace BCH_PROJEKT
                 {
                 Values = ReceivedBits,
                     Name = "Recived",
+                    
                     Fill = null,
-                    GeometrySize = 7.5,
+                    GeometrySize = 10,
                     Stroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 },
                     GeometryStroke= new SolidColorPaint(SKColors.Red){ StrokeThickness = 2 }
                 } };
@@ -731,7 +739,9 @@ namespace BCH_PROJEKT
                     MaxLimit = 65,
                     MinStep = 1,
                     Labeler = value => value.ToString("0"),
-                    Name ="Sample"
+                    Name ="Sample",
+                    SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) {StrokeThickness=1},
+
                 }
             };
 
@@ -745,7 +755,8 @@ namespace BCH_PROJEKT
                     UnitWidth = 1,
                     Labeler = value => value.ToString("0"),
                     LabelsRotation = 0,
-                    Name= "Sample"
+                    Name= "Sample",
+                    SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) {StrokeThickness=1}
                 }
                 };
 
@@ -757,7 +768,9 @@ namespace BCH_PROJEKT
                     {
                         MinLimit = -0.1,
                         MaxLimit = 1.1,
-                        Name = "Bit"
+                        Name = "Bit",
+                        SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) {StrokeThickness=1},
+                        MinStep = 0.10,
                     }
                     };
 
@@ -767,7 +780,9 @@ namespace BCH_PROJEKT
                     {
                         MinLimit = -0.1,
                         MaxLimit = 1.1,
-                        Name = "Bit"
+                        Name = "Bit",
+                        SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) {StrokeThickness=1},
+                        MinStep = 0.10
                     }
                     };
 
@@ -775,10 +790,11 @@ namespace BCH_PROJEKT
                 {
                      new Axis
                      {
-                        Name = "X",
+                        Name = "Iteration",
                         MinLimit=0,
-                        MinStep = 1,
-                        Labeler = value => value.ToString("0")
+                        Labeler = value => value.ToString("0"),
+                        SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) {StrokeThickness=1},
+                        
                      }
                 };
                 BerY = new Axis[]
@@ -786,9 +802,11 @@ namespace BCH_PROJEKT
                     new Axis
                     {
                         Name = "BER",
-                         MinLimit = -0.001,
+                         MinLimit = -0.1,
                         MaxLimit = 1,
-                        Labeler = value => value.ToString("P2") // procenty
+                        Labeler = value => value.ToString("P2"), // procenty
+                        SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) {StrokeThickness=1},
+                        
                     }
                 };
             }
