@@ -174,7 +174,7 @@ namespace BCH_PROJEKT
             // === WYKRES 1: DANE WYSŁANE ===
             foreach (char c in userInput)
             {
-                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
+                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');// Zamienia stringa na bytr i zmienia go na reprezentacje binarną i pod koniec uzupełnia zerami żeby zawsze było 8 znaków
                 await AddBitsToSeries(viewModel.SentBits, binary, 400);
             }
 
@@ -183,7 +183,7 @@ namespace BCH_PROJEKT
             // === SPRAWDŹ CZY POŁĄCZONY Z SSH ===
             if (isSshConnected && sshClient != null && sshClient.IsConnected)
             {
-                // PRAWDZIWE SSH
+                //Ustawienia byte 
                 byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
                 byte density = (byte)DensitySlider.Value;
                 byte bitErrorValue = (byte)BitErrorSlider.Value;
@@ -199,9 +199,9 @@ namespace BCH_PROJEKT
                         using var cmd = sshClient.CreateCommand($"{bashScriptPath} {commandArgs}");
                         var result = cmd.Execute();
 
-                        // Wyciągnij tylko tekst z wyniku SSH (bez dodatkowych informacji)
+                        // Wyciągnij tylko tekst z wyniku SSH 
                         string[] lines = result.Split('\n');
-                        return lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? userInput;
+                        return lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? userInput;//zwraca tekst użytkownika jeśli coś pójdzie nie tak
                     }
                     catch (Exception ex)
                     {
@@ -214,7 +214,7 @@ namespace BCH_PROJEKT
             }
             else
             {
-                // SYMULACJA (gdy nie ma połączenia SSH)
+                // SYMULACJA 
                 await Task.Delay(300); // Symuluj opóźnienie
                 receivedText = SimulateProcessing(userInput);
             }
@@ -222,7 +222,7 @@ namespace BCH_PROJEKT
             // === WYKRES 2: DANE OTRZYMANE ===
             foreach (char c in receivedText)
             {
-                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
+                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');// Zamienia stringa na bytr i zmienia go na reprezentacje binarną i pod koniec uzupełnia zerami żeby zawsze było 8 znaków
                 await AddBitsToSeries(viewModel.ReceivedBits, binary, 400);
             }
 
@@ -232,15 +232,15 @@ namespace BCH_PROJEKT
 
             viewModel.BerValues.Clear();
 
-            for (int i = 0; i < 30; i++)
+            for (int i = 0; i < 30; i++) // Pętla do wykonania wykresu BER
             {
                 List<int> sentBits = new List<int>();
                 List<int> receivedBits = new List<int>();
 
                 string received;
-
+                // === SPRAWDŹ CZY POŁĄCZONY Z SSH ===
                 if (isSshConnected && sshClient != null && sshClient.IsConnected)
-                {
+                {   //Ustawienia byte 
                     byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
                     byte density = (byte)DensitySlider.Value;
                     byte bitErrorValue = (byte)BitErrorSlider.Value;
@@ -251,7 +251,7 @@ namespace BCH_PROJEKT
                         using var cmd = sshClient.CreateCommand($"{bashScriptPath} {commandArgs}");
                         var result = cmd.Execute();
                         string[] lines = result.Split('\n');
-                        return lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? userInput;
+                        return lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? userInput; 
                     });
                 }
                 else
@@ -263,13 +263,13 @@ namespace BCH_PROJEKT
                 foreach (char c in userInput)
                 {
                     string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
-                    sentBits.AddRange(binary.Select(b => b == '1' ? 1 : 0));
+                    sentBits.AddRange(binary.Select(b => b == '1' ? 1 : 0));//sprawdzanie znaku b w ciągu binarny jeśli 1 to dodaj do listy 1, jeśli 0 to dodaj do listy 0
                 }
 
                 foreach (char c in received)
                 {
                     string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
-                    receivedBits.AddRange(binary.Select(b => b == '1' ? 1 : 0));
+                    receivedBits.AddRange(binary.Select(b => b == '1' ? 1 : 0));//sprawdzanie znaku b w ciągu binarny jeśli 1 to dodaj do listy 1, jeśli 0 to dodaj do listy 0
                 }
 
                 double ber = CalculateBERFromBits(sentBits, receivedBits);
@@ -281,7 +281,7 @@ namespace BCH_PROJEKT
                         viewModel.BerValues.RemoveAt(0);
                 });
 
-                await Task.Delay(300);
+                await Task.Delay(500);
             }
 
            
