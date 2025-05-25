@@ -20,16 +20,19 @@ using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using LiveChartsCore.Measure;
 using System.Windows.Threading;
+using System.Diagnostics;
 
 namespace BCH_PROJEKT
 {
     public partial class MainWindow : Window
     {
+        private CancellationTokenSource berCancellationToken;
         private CancellationTokenSource bitAddingCancellationToken;
         private bool BCHCodingEnable = false;
         private bool FastMode = true;
         private bool noiseGenerationEnabled = false;
         private ViewModel viewModel;
+ 
         private bool bitErrorEnabled = false;
         
         private bool IsFastModeEnabled = false;
@@ -43,12 +46,16 @@ namespace BCH_PROJEKT
         private string sshPassword = "password";
         private string bashScriptPath = "/home/username/script.sh";
         private SshClient sshClient;
+
+        private int berDataPointIndex = 0;
         public MainWindow()
         {
             InitializeComponent();
             StartSshPing();
             viewModel = new ViewModel();
             DataContext = viewModel;
+            
+
             SshHostTextBox.Text = "IP";
             SshUserTextBox.Text = "username";
             SshPasswordBox.Password = "password";
@@ -151,12 +158,6 @@ namespace BCH_PROJEKT
         //Wysyłanie i odbieranie danych 
         private async void SendCommandButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!isSshConnected || sshClient == null || !sshClient.IsConnected)
-            {
-                MessageBox.Show("Not connected via SSH. Please apply valid SSH settings first.");
-                return;
-            }
-
             string userInput = Box.Text.Trim();
 
             if (string.IsNullOrEmpty(userInput) || userInput.Length > 8)
@@ -165,59 +166,175 @@ namespace BCH_PROJEKT
                 return;
             }
 
+            // Wyczyść poprzednie dane
             viewModel.SentBits.Clear();
             viewModel.ReceivedBits.Clear();
+            RecivedTextBox.Clear();
 
+            // === WYKRES 1: DANE WYSŁANE ===
             foreach (char c in userInput)
             {
                 string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
                 await AddBitsToSeries(viewModel.SentBits, binary, 400);
             }
 
-            byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
-            byte density = (byte)DensitySlider.Value;
-            byte bitErrorValue = (byte)BitErrorSlider.Value;
+            string receivedText;
 
-            string commandArgs = $"{userInput} {flags} {density} {bitErrorValue}";
-
-            await Task.Run(() =>
+            // === SPRAWDŹ CZY POŁĄCZONY Z SSH ===
+            if (isSshConnected && sshClient != null && sshClient.IsConnected)
             {
-                try
+                // PRAWDZIWE SSH
+                byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
+                byte density = (byte)DensitySlider.Value;
+                byte bitErrorValue = (byte)BitErrorSlider.Value;
+                string commandArgs = $"{userInput} {flags} {density} {bitErrorValue}";
+
+                receivedText = await Task.Run(() =>
                 {
-                    if (!sshClient.IsConnected)
-                        sshClient.Connect();
-
-                    using var cmd = sshClient.CreateCommand($"{bashScriptPath} {commandArgs}");
-                    var result = cmd.Execute();
-
-                    Dispatcher.Invoke(() =>
+                    try
                     {
-                        RecivedTextBox.Clear();
-                        RecivedTextBox.AppendText(result);
-                        RecivedTextBox.ScrollToEnd();
-                    });
+                        if (!sshClient.IsConnected)
+                            sshClient.Connect();
 
-                    string cleanBinary = new string(result.Where(c => c == '0' || c == '1').ToArray());
-                    string sentBinary = string.Concat(userInput.Select(c => Convert.ToString((byte)c, 2).PadLeft(8, '0')));
+                        using var cmd = sshClient.CreateCommand($"{bashScriptPath} {commandArgs}");
+                        var result = cmd.Execute();
 
-                    if (!string.IsNullOrEmpty(cleanBinary))
+                        // Wyciągnij tylko tekst z wyniku SSH (bez dodatkowych informacji)
+                        string[] lines = result.Split('\n');
+                        return lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? userInput;
+                    }
+                    catch (Exception ex)
                     {
-                        Dispatcher.Invoke(async () =>
-                        {
-                            await AddBitsToSeries(viewModel.ReceivedBits, cleanBinary, 500);
-                            CalculateAndPlotBer(sentBinary, cleanBinary);
+                        Dispatcher.Invoke(() => {
+                            MessageBox.Show("SSH command error: " + ex.Message);
                         });
+                        return userInput; // Zwróć oryginalny tekst w przypadku błędu
+                    }
+                });
+            }
+            else
+            {
+                // SYMULACJA (gdy nie ma połączenia SSH)
+                await Task.Delay(300); // Symuluj opóźnienie
+                receivedText = SimulateProcessing(userInput);
+            }
+
+            // === WYKRES 2: DANE OTRZYMANE ===
+            foreach (char c in receivedText)
+            {
+                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
+                await AddBitsToSeries(viewModel.ReceivedBits, binary, 400);
+            }
+
+            
+            RecivedTextBox.AppendText($"{receivedText}\n");
+
+
+            viewModel.BerValues.Clear();
+
+            for (int i = 0; i < 30; i++)
+            {
+                List<int> sentBits = new List<int>();
+                List<int> receivedBits = new List<int>();
+
+                string received;
+
+                if (isSshConnected && sshClient != null && sshClient.IsConnected)
+                {
+                    byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
+                    byte density = (byte)DensitySlider.Value;
+                    byte bitErrorValue = (byte)BitErrorSlider.Value;
+                    string commandArgs = $"{userInput} {flags} {density} {bitErrorValue}";
+
+                    received = await Task.Run(() =>
+                    {
+                        using var cmd = sshClient.CreateCommand($"{bashScriptPath} {commandArgs}");
+                        var result = cmd.Execute();
+                        string[] lines = result.Split('\n');
+                        return lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? userInput;
+                    });
+                }
+                else
+                {
+                    await Task.Delay(100);
+                    received = SimulateProcessing(userInput);
+                }
+
+                foreach (char c in userInput)
+                {
+                    string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
+                    sentBits.AddRange(binary.Select(b => b == '1' ? 1 : 0));
+                }
+
+                foreach (char c in received)
+                {
+                    string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
+                    receivedBits.AddRange(binary.Select(b => b == '1' ? 1 : 0));
+                }
+
+                double ber = CalculateBERFromBits(sentBits, receivedBits);
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    viewModel.BerValues.Add(ber);
+                    if (viewModel.BerValues.Count > 100)
+                        viewModel.BerValues.RemoveAt(0);
+                });
+
+                await Task.Delay(300);
+            }
+
+           
+        }
+
+        // Dodaj tę funkcję do symulacji (gdy nie ma SSH):
+        private string SimulateProcessing(string input)
+        {
+            Random random = new Random();
+            char[] result = input.ToCharArray();
+
+            // Oblicz prawdopodobieństwo błędu
+            double errorChance = 0.0;
+
+            if (noiseGenerationEnabled)
+            {
+                errorChance += DensitySlider.Value / 100.0 *2.0; // Maksymalnie 40% z szumu
+            }
+
+            if (bitErrorEnabled)
+            {
+                errorChance += BitErrorSlider.Value / 100.0 * 2.0; // Maksymalnie 30% z bit error
+            }
+
+            // Wprowadź błędy
+            for (int i = 0; i < result.Length; i++)
+            {
+                if (random.NextDouble() < errorChance)
+                {
+                    // Zmień na losową literę lub cyfrę
+                    if (random.NextDouble() < 0.5)
+                        result[i] = (char)random.Next(97, 123); // a-z
+                    else
+                        result[i] = (char)random.Next(65, 91);  // A-Z
+                }
+            }
+
+            // Jeśli BCH włączone - skoryguj część błędów
+            if (BCHCodingEnable)
+            {
+                char[] original = input.ToCharArray();
+                for (int i = 0; i < result.Length; i++)
+                {
+                    if (result[i] != original[i] && random.NextDouble() < 0.8) // 80% korekcji
+                    {
+                        result[i] = original[i]; // Przywróć oryginalny znak
                     }
                 }
-                catch (Exception ex)
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        MessageBox.Show("SSH command error: " + ex.Message);
-                    });
-                }
-            });
+            }
+
+            return new string(result);
         }
+
 
 
 
@@ -253,37 +370,95 @@ namespace BCH_PROJEKT
             }
         }
 
-        //Tutaj oblicza oraz daje na wykres Ber dane 
-        private void CalculateAndPlotBer(string sentBits, string receivedBits)
-        {
-            if (string.IsNullOrEmpty(sentBits) || string.IsNullOrEmpty(receivedBits)) return;
+        
 
-            int errors = 0;
-            int length = Math.Min(sentBits.Length, receivedBits.Length);
+
+
+        private async Task RunBerTest(string userInput, int iterations = 30, int delayMs = 500)
+        {
+            berCancellationToken?.Cancel();
+            berCancellationToken = new CancellationTokenSource();
+            var token = berCancellationToken.Token;
+
+            viewModel.BerValues.Clear();
+
+            for (int i = 0; i < iterations; i++)
+            {
+                if (token.IsCancellationRequested) break;
+
+                // Wyczyść poprzednie bity przed nowym testem
+                viewModel.SentBits.Clear();
+                viewModel.ReceivedBits.Clear();
+
+                // Wysyłanie i odbieranie
+                // --- wysyłanie
+                foreach (char c in userInput)
+                {
+                    string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
+                    await AddBitsToSeries(viewModel.SentBits, binary, 10);
+                }
+
+                string receivedText;
+
+                if (isSshConnected && sshClient != null && sshClient.IsConnected)
+                {
+                    byte flags = BuildFlagsByte(BCHCodingEnable, FastMode, noiseGenerationEnabled, bitErrorEnabled);
+                    byte density = (byte)DensitySlider.Value;
+                    byte bitErrorValue = (byte)BitErrorSlider.Value;
+                    string commandArgs = $"{userInput} {flags} {density} {bitErrorValue}";
+
+                    receivedText = await Task.Run(() =>
+                    {
+                        if (!sshClient.IsConnected)
+                            sshClient.Connect();
+
+                        using var cmd = sshClient.CreateCommand($"{bashScriptPath} {commandArgs}");
+                        var result = cmd.Execute();
+                        string[] lines = result.Split('\n');
+                        return lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? userInput;
+                    });
+                }
+                else
+                {
+                    await Task.Delay(100);
+                    receivedText = SimulateProcessing(userInput);
+                }
+
+                // --- odbieranie
+                foreach (char c in receivedText)
+                {
+                    string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
+                    await AddBitsToSeries(viewModel.ReceivedBits, binary, 10);
+                }
+
+                // Oblicz BER dla tej iteracji
+                double ber = CalculateBERFromBits(viewModel.SentBits, viewModel.ReceivedBits);
+
+                // Dodaj BER do kolekcji na UI
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    viewModel.BerValues.Add(ber);
+                    if (viewModel.BerValues.Count > 100)
+                        viewModel.BerValues.RemoveAt(0);
+                });
+
+                await Task.Delay(delayMs);
+            }
+        }
+        private double CalculateBERFromBits(IList<int> sentBits, IList<int> receivedBits)
+        {
+            int length = Math.Min(sentBits.Count, receivedBits.Count);
+            if (length == 0) return 0;
+
+            int errorCount = 0;
 
             for (int i = 0; i < length; i++)
             {
                 if (sentBits[i] != receivedBits[i])
-                    errors++;
+                    errorCount++;
             }
 
-            double ber;
-            if (length > 0)
-            {
-                ber = (double)errors / length;
-            }
-            else
-            {
-                ber = 0.0;
-            }
-
-            Dispatcher.Invoke(() =>
-            {
-                if (viewModel.BERValues.Count > 100)
-                    viewModel.BERValues.RemoveAt(0);
-
-                viewModel.BERValues.Add(ber);
-            });
+            return (double)errorCount / length;
         }
 
         //Tutaj mamy funkcje ping sprawdzajaca connectivity 
@@ -343,7 +518,7 @@ namespace BCH_PROJEKT
             RecivedTextBox.Clear();
             viewModel.SentBits.Clear();
             viewModel.ReceivedBits.Clear();
-            viewModel.BERValues.Clear();
+           
         }
 
         //Wszystkie funkcje obsługujące Buttony
@@ -353,8 +528,9 @@ namespace BCH_PROJEKT
             SetBchButtons(true);
         }
 
-        
-        private void BchNoButton_Click(object sender, RoutedEventArgs e)
+       
+    
+    private void BchNoButton_Click(object sender, RoutedEventArgs e)
         {
             BCHCodingEnable = false;
             SetBchButtons(false);
@@ -488,26 +664,79 @@ namespace BCH_PROJEKT
         //Tutaj wszystkie dane potrzebne do wykresu
         public class ViewModel
         {
-            public ObservableCollection<double> BERValues { get; set; } = new ObservableCollection<double>();
+
             public ObservableCollection<int> SentBits { get; set; } = new ObservableCollection<int>();
             public ObservableCollection<int> ReceivedBits { get; set; } = new ObservableCollection<int>();
+            public ObservableCollection<double> BerValues{ get; set; } = new ObservableCollection<double>();
+            public ISeries[] SentSeries { get; set; }
+            public ISeries[] RecivedtSeries { get; set; }
+            
+            public ISeries[] BerSeries { get; set; }
+            public Axis[] X1 { get; set; }
+            public Axis[] X2 { get; set; }
+            public Axis[] Y1 { get; set; }
+            public Axis[] Y2 { get; set; }
 
-            public ISeries[] Series { get; set; }
-            public ISeries[] BERSeries { get; set; }
+            public Axis[] BerX { get; set; }
+            public Axis[] BerY { get; set; }
 
-            public Axis[] YAxes { get; set; } = new Axis[]
+
+            public Margin DrawMargin { get; set; }
+
+            public ViewModel()
+            {
+                SentSeries = new ISeries[]
+                {
+                new StepLineSeries<int>
+                {
+                Values = SentBits,
+                    Name = "Sent",
+                    Fill = null,
+                    GeometrySize = 7.5,
+                    Stroke = new SolidColorPaint(SKColors.Green) { StrokeThickness = 2 },
+                    GeometryStroke= new SolidColorPaint(SKColors.Green){ StrokeThickness = 2 }
+                }
+                };
+
+                RecivedtSeries = new ISeries[]
+                {
+                new StepLineSeries<int>
+                {
+                Values = ReceivedBits,
+                    Name = "Recived",
+                    Fill = null,
+                    GeometrySize = 7.5,
+                    Stroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 },
+                    GeometryStroke= new SolidColorPaint(SKColors.Red){ StrokeThickness = 2 }
+                } };
+
+                BerSeries = new ISeries[]
+        {
+            new LineSeries<double>
+            {
+                Values = BerValues,
+                Name = "BER",
+                Stroke = new SolidColorPaint(SKColors.Blue) { StrokeThickness = 2 },
+                GeometrySize = 6,
+                Fill = null,
+                GeometryStroke = new SolidColorPaint(SKColors.Blue) { StrokeThickness = 2 }
+                }
+                };
+
+                X1 = new Axis[]
             {
                 new Axis
                 {
-                    MinLimit = -0.1,
-                    MaxLimit = 1.2,
+                    MinLimit = -0.5,
+                    MaxLimit = 65,
                     MinStep = 1,
                     Labeler = value => value.ToString("0"),
+                    Name ="Sample"
                 }
             };
 
-            public Axis[] XAxes { get; set; } = new Axis[]
-            {
+                X2 = new Axis[]
+                {
                 new Axis
                 {
                     MinLimit = -0.5,
@@ -515,57 +744,57 @@ namespace BCH_PROJEKT
                     MinStep = 1,
                     UnitWidth = 1,
                     Labeler = value => value.ToString("0"),
-                    LabelsRotation = 0
+                    LabelsRotation = 0,
+                    Name= "Sample"
                 }
-            };
-
-            public Axis[] AdditionalYAxes { get; set; } = new Axis[]
-            {
-                new Axis
-                {
-                    MinLimit = 0,
-                    MaxLimit = 1,
-                    Position = AxisPosition.End,
-                    Labeler = value => value.ToString("0.00"),
-                    Name = "BER"
-                }
-            };
-
-            public ViewModel()
-            {
-                Series = new ISeries[]
-                {
-                    new LineSeries<int>
-                    {
-                        Values = SentBits,
-                        Name = "Send",
-                        Fill = null,
-                        GeometrySize = 7.5,
-                        Stroke = new SolidColorPaint(SKColors.Green) { StrokeThickness = 2 }
-                    },
-                    new LineSeries<int>
-                    {
-                        Values = ReceivedBits,
-                        Name = "Received",
-                        Fill = null,
-                        GeometrySize = 7.5,
-                        Stroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 }
-                    }
                 };
 
-                BERSeries = new ISeries[]
-                {
-                    new LineSeries<double>
+                SharedAxes.Set(X1[0], X2[0]);
+
+                Y1 = new Axis[]
                     {
-                        Values = BERValues,
+                new Axis
+                    {
+                        MinLimit = -0.1,
+                        MaxLimit = 1.1,
+                        Name = "Bit"
+                    }
+                    };
+
+                Y2 = new Axis[]
+                    {
+                new Axis
+                    {
+                        MinLimit = -0.1,
+                        MaxLimit = 1.1,
+                        Name = "Bit"
+                    }
+                    };
+
+                BerX = new Axis[]
+                {
+                     new Axis
+                     {
+                        Name = "X",
+                        MinLimit=0,
+                        MinStep = 1,
+                        Labeler = value => value.ToString("0")
+                     }
+                };
+                BerY = new Axis[]
+                {
+                    new Axis
+                    {
                         Name = "BER",
-                        Fill = null,
-                        GeometrySize = 7.5,
-                        Stroke = new SolidColorPaint(SKColors.Blue) { StrokeThickness = 2 },
-                        ScalesYAt = 0
+                         MinLimit = -0.001,
+                        MaxLimit = 1,
+                        Labeler = value => value.ToString("P2") // procenty
                     }
                 };
             }
         }
+
+        
+
     }
 }

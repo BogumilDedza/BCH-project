@@ -87,7 +87,7 @@
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="Margin" Value="2"/>
-            <Setter Property="BorderBrush" Value="#A0A0A0"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -257,7 +257,7 @@
 
         <!--Chart section-->
         <Grid Grid.Column="1" Margin="30">
-
+            <TextBlock Text="{Binding BERSeries.Count}" Foreground="White" />
             <TabControl Grid.Row="0"
                 Background="#3A3A3A"
         BorderBrush="#A0A0A0"
@@ -268,35 +268,53 @@
         HorizontalAlignment="Stretch"
         VerticalAlignment="Stretch">
 
-                <TabItem Header="Sent and recived data" Padding="10">
-                    <Grid Background="#3A3A3A" Margin="5" >
+                <TabItem Header="Sent and recived data" >
+                    <Grid  Margin="5" >
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
                         <lvc:CartesianChart
-                         Series="{Binding Series}"
-                         YAxes="{Binding YAxes}"
-                         XAxes="{Binding XAxes}"
+                            Grid.Row="0"
+                         Series="{Binding SentSeries}"
+                         XAxes="{Binding X1}"
+                         YAxes="{Binding Y1}"
+                         DrawMargin="{Binding DrawMargin}"    
                          ZoomMode="None"
                          LegendPosition="Top"
-                         Background="White"
-                         Foreground="#1E1E1E"/>
-                     </Grid>
-                </TabItem>
-
-               
-                <TabItem Header="BER " Padding="10">
-                    <Grid Background="#3A3A3A" Margin="5" >
+                          Background="White"
+                        />
+                        
                         <lvc:CartesianChart
-                        Series="{Binding BERSeries}"
-                        YAxes="{Binding BERYAxes}"
-                        XAxes="{Binding BERXAxes}"
+                            Grid.Row="1"
+                         Series="{Binding RecivedtSeries}"
+                        XAxes="{Binding X2}"
+                        YAxes="{Binding Y2}"
+                        DrawMargin="{Binding DrawMargin}"    
                         ZoomMode="None"
                         LegendPosition="Top"
                         Background="White"
-                        Foreground="#1E1E1E"/>
+                        />
                     </Grid>
                 </TabItem>
 
-                    
-               
+                <TabItem Header=" BER " >
+                    <Grid  Margin="5" >
+                        <lvc:CartesianChart
+            
+                           Series="{Binding BerSeries}"
+                            XAxes="{Binding BerX}"
+                            YAxes="{Binding BerY}"
+    
+                            ZoomMode="None"
+                            LegendPosition="Top"
+                            Background="White" />
+                    </Grid>
+                </TabItem>
+
+
+
             </TabControl>
 
         </Grid>
