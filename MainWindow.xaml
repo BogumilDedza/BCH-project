@@ -155,7 +155,9 @@
                         <Ellipse x:Name="ConnectionStatusDot" Width="14" Height="14" Margin="5,0,0,0" Fill="Red" Stroke="Black"/>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,5" HorizontalAlignment="Center">
+                    
+
+                <StackPanel Orientation="Horizontal" Margin="0,5" HorizontalAlignment="Center">
                         <TextBlock Text="Host:" Width="70" FontSize="13" VerticalAlignment="Center"/>
                         <TextBox x:Name="SshHostTextBox" Width="160" FontSize="13" Margin="10,0,0,0"/>
                     </StackPanel>

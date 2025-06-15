@@ -43,12 +43,12 @@ namespace BCH_PROJEKT
         private bool isSshConnected = false;
         private bool isPingRunning = false;
 
-        private string sshHost = "172.20.98.16";
+        private string sshHost = "169.254.97.151";
         private string sshUser = "root";
         private string sshPassword = "fpgai0t";
-        private string bashScriptPath = "/home/username/script.sh";
+        private string bashScriptPath = "/home/root/script";
         private SshClient sshClient;
-
+        private bool lastDataFromSsh = false;
         private int berDataPointIndex = 0;
         public MainWindow()
         {
@@ -66,6 +66,9 @@ namespace BCH_PROJEKT
         //Ustawienia do SSH sprawdzenie 
         private async void ApplySshSettings_Click(object sender, RoutedEventArgs e)
         {
+            sshHost = SshHostTextBox.Text.Trim();
+            sshUser = SshUserTextBox.Text.Trim();
+            sshPassword = SshPasswordBox.Password;
          
 
             // Połączenie z SSH
@@ -93,16 +96,17 @@ namespace BCH_PROJEKT
                 }
             });
 
+            isSshConnected = connected;
+            UpdateConnectionStatus(connected);
+
             if (connected)
             {
-                isSshConnected = true;
-                UpdateConnectionStatus(true);
+                
                 MessageBox.Show("SSH connection successful.");
             }
             else
             {
-                isSshConnected = false;
-                UpdateConnectionStatus(false);
+               
                 MessageBox.Show("SSH connection failed.");
             }
         }
@@ -136,15 +140,39 @@ namespace BCH_PROJEKT
         }
 
         //  Flaga czyli BCH,FAST NOISE BIT ERROR
-        private string BuildFlagsByte(byte dataIn, bool bch, bool FS, bool gauss, bool ber, byte density, byte berGen)
+        private string BuildCommand(byte dataIn, bool bch, bool fs, bool gauss, bool ber, byte density, byte berGen)
         {
             
-            int bchFlag = bch ? 1 : 0;
-            int fsFlag = FS ? 1 : 0;
-            int gaussFlag = gauss ? 1 : 0;
-            int berFlag = ber ? 1 : 0;
+            string executablePath = "/home/root/script";  
 
-            return $"{bashScriptPath} 0x{dataIn:X2} {bchFlag} {fsFlag} {gaussFlag} {berFlag} 0x{density:X2} 0x{berGen:X2}";
+            return $"{executablePath} --input 0x{dataIn:X2} --bch {(bch ? 1 : 0)} --fs {(fs ? 1 : 0)} --gauss {(gauss ? 1 : 0)} --ber {(ber ? 1 : 0)} --density 0x{density:X2} --bergen 0x{berGen:X2} 2>&1";
+        }
+
+        private async Task<bool> ResetHardwareState()
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    if (!sshClient.IsConnected)
+                    {
+                        sshClient.Connect();
+                    }
+
+                    using var cmd = sshClient.CreateCommand($"{bashScriptPath} --input 0x00 --bch 0 --fs 0 --gauss 0 --ber 0 --density 0x00 --bergen 0x00");
+                    cmd.CommandTimeout = TimeSpan.FromSeconds(3);
+                    var result = cmd.Execute();
+
+                    return cmd.ExitStatus == 0;
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() => {
+                        RecivedTextBox.AppendText($"Reset Error: {ex.Message}\n");
+                    });
+                    return false;
+                }
+            });
         }
 
         //Wysyłanie i odbieranie danych 
@@ -154,35 +182,37 @@ namespace BCH_PROJEKT
 
             if (string.IsNullOrEmpty(userInput) || userInput.Length > 8)
             {
-                RecivedTextBox.Text = "Wrong Inpute";
+                RecivedTextBox.Text = "Wrong Input - Maximum 8 characters allowed";
                 return;
             }
 
-            // Wyczyść poprzednie dane
+            // czyść dane
             viewModel.SentBits.Clear();
             viewModel.ReceivedBits.Clear();
             RecivedTextBox.Clear();
 
-            //  WYKRES 1: DANE WYSŁANE 
+            //CHART 1: SENT DATA 
             foreach (char c in userInput)
             {
-                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');// Zamienia stringa na bytr i zmienia go na reprezentacje binarną i pod koniec uzupełnia zerami żeby zawsze było 8 znaków
+                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
                 await AddBitsToSeries(viewModel.SentBits, binary, 400);
             }
 
             string receivedText = "";
 
-            //SPRAWDŹ CZY POŁĄCZONY Z SSH 
+             
             if (isSshConnected && sshClient != null && sshClient.IsConnected)
             {
-                
+                await ResetHardwareState();
+                await Task.Delay(1000);
+
                 foreach (char c in userInput)
                 {
                     byte dataIn = (byte)c;
                     byte density = (byte)DensitySlider.Value;
                     byte bitErrorValue = (byte)BitErrorSlider.Value;
 
-                    string command = BuildFlagsByte(
+                    string command = BuildCommand(
                         dataIn,
                         BCHCodingEnable,
                         FastMode,
@@ -192,56 +222,104 @@ namespace BCH_PROJEKT
                         bitErrorValue
                     );
 
-                    byte receivedByte = await Task.Run(() =>
-                    {
-                        try
-                        {
-                            if (!sshClient.IsConnected)
-                                sshClient.Connect();
-
-                            using var cmd = sshClient.CreateCommand(command);
-                            var result = cmd.Execute().Trim();
-
-                            if (byte.TryParse(result, out byte parsedByte))
-                            {
-                                return parsedByte;
-                            }
-                            else
-                            {
-                                return dataIn;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Dispatcher.Invoke(() => {
-                                MessageBox.Show("SSH command error: " + ex.Message);
-                            });
-                            return dataIn; 
-                        }
-                    });
-
-                    
+                    byte receivedByte = await ExecuteSshCommand(command, dataIn);
                     receivedText += (char)receivedByte;
+
+                    int delayMs = BCHCodingEnable ? 2000 : 1000;
+                    await Task.Delay(delayMs);
                 }
             }
             else
             {
-                // SYMULACJA 
-                await Task.Delay(300); // Symuluj opóźnienie
+                lastDataFromSsh = false;
+                RecivedTextBox.AppendText("[SIMULATION MODE] Using local simulation...\n");
+                // SIMULATION MODE
+                await Task.Delay(300);
                 receivedText = SimulateProcessing(userInput);
             }
 
-            // === WYKRES 2: DANE OTRZYMANE ===
+           
             foreach (char c in receivedText)
             {
-                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');// Zamienia stringa na byte i zmienia go na reprezentacje binarną i pod koniec uzupełnia zerami żeby zawsze było 8 znaków
+                string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
                 await AddBitsToSeries(viewModel.ReceivedBits, binary, 400);
             }
 
-            RecivedTextBox.AppendText($"{receivedText}\n");
-
+            string sourceIndicator = lastDataFromSsh ? "[FROM SSH]" : "[FROM SIMULATION]";
+            RecivedTextBox.AppendText($"{sourceIndicator} Final result: {receivedText}\n");
+            // Run BER test
             viewModel.BerValues.Clear();
             await RunBerTest(userInput);
+        }
+
+     
+        private async Task<byte> ExecuteSshCommand(string command, byte fallbackValue)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    if (!sshClient.IsConnected)
+                    {
+                        sshClient.Connect();
+                    }
+
+                    using var cmd = sshClient.CreateCommand(command);
+                    cmd.CommandTimeout = TimeSpan.FromSeconds(2); 
+
+                    var result = cmd.Execute().Trim();
+
+                   /* Dispatcher.Invoke(() => {
+                        RecivedTextBox.AppendText($"INPUT: {fallbackValue} ('{(char)fallbackValue}') -> ");
+                        RecivedTextBox.AppendText($"COMMAND: {command}\n");
+                        RecivedTextBox.AppendText($"RAW RESULT: '{result}' -> ");
+                    });
+                   Decoding*/
+
+                    if (cmd.ExitStatus != 0 || !string.IsNullOrEmpty(cmd.Error))
+                    {
+                        Dispatcher.Invoke(() => {
+                            RecivedTextBox.AppendText($"Command failed with exit code {cmd.ExitStatus}\n");
+                            if (!string.IsNullOrEmpty(cmd.Error))
+                                RecivedTextBox.AppendText($"Error: {cmd.Error}\n");
+                        });
+                        lastDataFromSsh = false;
+                        return fallbackValue;
+                    }
+
+                   
+                    if (result.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (byte.TryParse(result.Substring(2), System.Globalization.NumberStyles.HexNumber, null, out byte hexByte))
+                        {
+                            lastDataFromSsh = true;
+                            return hexByte;
+                        }
+                    }
+
+                    if (byte.TryParse(result, out byte parsedByte))
+                    {
+                        lastDataFromSsh = true;
+                        return parsedByte;
+                    }
+
+                    
+                    Dispatcher.Invoke(() => {
+                        RecivedTextBox.AppendText($"Could not parse result: '{result}'\n");
+                    });
+
+                    lastDataFromSsh = false;
+                    return fallbackValue;
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() => {
+                        RecivedTextBox.AppendText($"SSH Error: {ex.Message}\n");
+                    });
+                    lastDataFromSsh = false;
+                    return fallbackValue;
+                }
+            });
         }
 
         // Funkcja do symulacji w stanie braku połączenia z ssh
@@ -327,7 +405,7 @@ namespace BCH_PROJEKT
             }
         }
 
-        
+
 
 
 
@@ -343,64 +421,35 @@ namespace BCH_PROJEKT
             {
                 if (token.IsCancellationRequested) break;
 
-                // Wyczyść poprzednie bity przed nowym testem
-                viewModel.SentBits.Clear();
-                viewModel.ReceivedBits.Clear();
+                // Przygotuj dane do porównania
+                List<int> originalBits = new List<int>();
+                List<int> processedBits = new List<int>();
 
-                // Wysyłanie i odbieranie
-                // --- wysyłanie
+                // Konwertuj oryginalne dane na bity
                 foreach (char c in userInput)
                 {
                     string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
-                    await AddBitsToSeries(viewModel.SentBits, binary, 10);
+                    foreach (char bit in binary)
+                    {
+                        originalBits.Add(bit == '1' ? 1 : 0);
+                    }
                 }
 
                 string receivedText = "";
 
+                // Przetwarzanie przez SSH lub symulację
                 if (isSshConnected && sshClient != null && sshClient.IsConnected)
                 {
-                    
                     foreach (char c in userInput)
                     {
                         byte dataIn = (byte)c;
                         byte density = (byte)DensitySlider.Value;
                         byte bitErrorValue = (byte)BitErrorSlider.Value;
 
-                        string command = BuildFlagsByte(
-                            dataIn,
-                            BCHCodingEnable,
-                            FastMode,
-                            noiseGenerationEnabled,
-                            bitErrorEnabled,
-                            density,
-                            bitErrorValue
-                        );
+                        string command = BuildCommand(dataIn, BCHCodingEnable, FastMode,
+                            noiseGenerationEnabled, bitErrorEnabled, density, bitErrorValue);
 
-                        byte receivedByte = await Task.Run(() =>
-                        {
-                            try
-                            {
-                                if (!sshClient.IsConnected)
-                                    sshClient.Connect();
-
-                                using var cmd = sshClient.CreateCommand(command);
-                                var result = cmd.Execute().Trim();
-
-                                if (byte.TryParse(result, out byte parsedByte))
-                                {
-                                    return parsedByte;
-                                }
-                                else
-                                {
-                                    return dataIn;
-                                }
-                            }
-                            catch
-                            {
-                                return dataIn;
-                            }
-                        });
-
+                        byte receivedByte = await ExecuteSshCommand(command, dataIn);
                         receivedText += (char)receivedByte;
                     }
                 }
@@ -410,17 +459,36 @@ namespace BCH_PROJEKT
                     receivedText = SimulateProcessing(userInput);
                 }
 
-                // --- odbieranie
+                // Konwertuj otrzymane dane na bity
                 foreach (char c in receivedText)
                 {
                     string binary = Convert.ToString((byte)c, 2).PadLeft(8, '0');
-                    await AddBitsToSeries(viewModel.ReceivedBits, binary, 10);
+                    foreach (char bit in binary)
+                    {
+                        processedBits.Add(bit == '1' ? 1 : 0);
+                    }
                 }
 
-                // Oblicz BER dla tej iteracji
-                double ber = CalculateBERFromBits(viewModel.SentBits, viewModel.ReceivedBits);
+                // Oblicz BER dla kompletnych danych
+                double ber = CalculateBER(originalBits, processedBits);
 
-                // Dodaj BER do kolekcji na UI
+                // Aktualizuj wykresy (tylko dla ostatniej iteracji lub co kilka iteracji)
+                if (i == iterations - 1 || i % 5 == 0)
+                {
+                    viewModel.SentBits.Clear();
+                    viewModel.ReceivedBits.Clear();
+
+                    foreach (int bit in originalBits)
+                    {
+                        viewModel.SentBits.Add(bit);
+                    }
+                    foreach (int bit in processedBits)
+                    {
+                        viewModel.ReceivedBits.Add(bit);
+                    }
+                }
+
+                // Dodaj BER do wykresu
                 await Dispatcher.InvokeAsync(() =>
                 {
                     viewModel.BerValues.Add(ber);
@@ -431,16 +499,16 @@ namespace BCH_PROJEKT
                 await Task.Delay(delayMs);
             }
         }
-        private double CalculateBERFromBits(IList<int> sentBits, IList<int> receivedBits)
+
+        private double CalculateBER(List<int> originalBits, List<int> receivedBits)
         {
-            int length = Math.Min(sentBits.Count, receivedBits.Count);
+            int length = Math.Min(originalBits.Count, receivedBits.Count);
             if (length == 0) return 0;
 
             int errorCount = 0;
-
             for (int i = 0; i < length; i++)
             {
-                if (sentBits[i] != receivedBits[i])
+                if (originalBits[i] != receivedBits[i])
                     errorCount++;
             }
 
@@ -538,6 +606,8 @@ namespace BCH_PROJEKT
 
         private void GaussianNoiseButton_Click(object sender, RoutedEventArgs e)
         {
+
+            bitErrorEnabled = false;
             noiseGenerationEnabled = true;
             IsNoiseGenerationEnabled = true;
 
@@ -555,7 +625,8 @@ namespace BCH_PROJEKT
 
         private void BitErrorGeneratorButton_Click(object sender, RoutedEventArgs e)
         {
-            noiseGenerationEnabled = true;
+            bitErrorEnabled = true;
+            noiseGenerationEnabled = false;
             IsNoiseGenerationEnabled = true;
 
             GaussianOptionsPanel.Visibility = Visibility.Collapsed;
@@ -576,6 +647,7 @@ namespace BCH_PROJEKT
 
         private void NoiseNoButton_Click(object sender, RoutedEventArgs e)
         {
+            bitErrorEnabled = false;  // Add this line!
             noiseGenerationEnabled = false;
             IsNoiseGenerationEnabled = false;
             SetNoiseButtons(false);
