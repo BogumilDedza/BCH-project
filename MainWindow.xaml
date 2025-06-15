@@ -247,7 +247,7 @@
 
                         <StackPanel Name="BitErrorOptionsPanel" Orientation="Horizontal"  Margin="0,10,0,0" VerticalAlignment="Center" Visibility="Collapsed">
                             <TextBlock Text="Bit Error" VerticalAlignment="Center" Foreground="#E0E0E0" Margin="5"/>
-                            <Slider Name="BitErrorSlider" Minimum="0" Maximum="7" Width="200" Margin="5" />
+                            <Slider Name="BitErrorSlider" Minimum="0" Maximum="3" Width="200" Margin="5" />
                             <TextBlock Foreground="#E0E0E0" VerticalAlignment="Center" Margin="5"
                             Text="{Binding ElementName=BitErrorSlider, Path=Value, StringFormat={}{0:0}}" />
                         </StackPanel>
